@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  NOTES FOR THIS ENVIRONMENT (please read before editing this file)
+
+  1. Only block comments are safe in the page script.
+     In the browsers used with this project, something between Google and the browser
+     removes everything from two forward slashes in a row to the end of that line, even when
+     the slashes are inside a quoted string such as a web address. That leaves broken strings, a
+     JavaScript syntax error, and a page that shows the weekday header but no dates and no
+     sign in box. The console reported: Uncaught SyntaxError: Failed to execute 'write' on
+     'Document': Invalid or unexpected token.
+
+  2. What was changed to keep it working:
+     - Every line comment (the kind that starts with two slashes) in the page script was
+       removed or rewritten as a block comment.
+     - Web addresses in the script are no longer typed out in full. The two slashes after the
+       colon are joined from single slashes, for example "https:" + "/" + "/" + "host/path".
+       This is done for API_URL, for the Drive thumbnail address in driveThumb(), and for the
+       PRODID line of the iCal export.
+
+  3. Rules going forward:
+     - Never type two forward slashes in a row anywhere in this file (code, strings or comments).
+     - Before pasting a new copy into Apps Script, search the file for a slash followed
+       directly by another slash. There must be no matches.
+     - Code.gs is not affected because it runs on Google's servers and not in the browser.
+
+  4. The sign in link and job link values are filled in by Code.gs (doGet), which replaces the
+     first occurrence of each placeholder in the hidden initToken div near the top of the body.
+     The placeholder names are deliberately not written in this note, because a mention in a
+     comment above that div would be replaced instead of the real one and the links would stop working.
+-->
+<title>Job Calendar</title>
+
+<style>
+  body { font-family: Segoe UI, Arial, sans-serif; background: #f5f6f7; padding: 20px; }
+  h1 { font-weight: 600; margin: 0; }
+  button, input, select, textarea { font-family: inherit; }
+
+  .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .toolbar h1 { min-width: 230px; text-align: center; }
+  .toolbar .spacer { flex: 1; }
+
+  .btn-primary, .nav-btn {
+    background: #1a73e8; color: white; padding: 10px 16px; border: none;
+    border-radius: 4px; font-size: 14px; cursor: pointer;
+  }
+  .btn-primary:hover, .nav-btn:hover { background: #1558b0; }
+  .btn-primary:disabled { background: #9bb8e6; cursor: default; }
+  .nav-btn { padding: 10px 14px; }
+  .btn-secondary {
+    background: #eef0f3; color: #333; padding: 10px 16px; border: 1px solid #ccc;
+    border-radius: 4px; font-size: 14px; cursor: pointer;
+  }
+  .btn-secondary:hover { background: #e2e5e9; }
+  .btn-small { padding: 7px 12px; }
+
+  .filterbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; font-size: 14px; }
+  .filterbar select { padding: 8px; border: 1px solid #bbb; border-radius: 4px; font-size: 14px; }
+  .filterbar select:disabled { background: #f0f1f3; color: #333; opacity: 1; }
+  .filterbar .who { color: #555; }
+  .banner { padding: 8px 12px; border-radius: 4px; font-size: 13px; margin-bottom: 12px; display: none; }
+  .banner.error { display: block; background: #fce8e6; color: #a50e0e; }
+  .banner.info { display: block; background: #e8f0fe; color: #1a4fa3; }
+
+  .legend { display: flex; gap: 14px; font-size: 12px; color: #555; margin-bottom: 10px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+  .legend .l-blue::before { background: #4285f4; }
+  .legend .l-red::before { background: #d93025; }
+  .legend .l-green::before { background: #188038; }
+  .legend .l-gray::before { background: #9aa0a6; }
+
+  .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ccc; border: 1px solid #bbb; }
+  .day { background: white; min-height: 90px; padding: 8px; position: relative; min-width: 0; }
+  .day.empty { background: #fafafa; }
+  .day.today { background: #f3f7fe; }
+
+  .day-number {
+    display: inline-block; font-size: 14px; font-weight: 600; color: #333; margin-bottom: 6px;
+    padding: 1px 6px; border-radius: 10px; user-select: none;
+  }
+  body:not(.cleaner-mode) .day-number { cursor: pointer; }
+  body:not(.cleaner-mode) .day-number:hover { background: #e8f0fe; color: #1a73e8; }
+  .day.today .day-number { background: #1a73e8; color: white; }
+
+  .event {
+    border-left: 4px solid; padding: 6px 18px 6px 6px; margin-bottom: 6px; border-radius: 4px;
+    font-size: 12px; position: relative; word-wrap: break-word; cursor: pointer;
+  }
+  .event:hover { filter: brightness(0.97); }
+  .event strong { font-size: 13px; }
+  .event .status-line { color: #555; }
+  .st-blue  { background: #e8f0fe; border-left-color: #4285f4; } .st-blue strong  { color: #1a73e8; }
+  .st-red   { background: #fce8e6; border-left-color: #d93025; } .st-red strong   { color: #c5221f; }
+  .st-green { background: #e6f4ea; border-left-color: #188038; } .st-green strong { color: #137333; }
+  .st-gray  { background: #e6e6e6; border-left-color: #9aa0a6; color: #4d4d4d; } .st-gray strong { color: #4d4d4d; } .st-gray .status-line { color: #4d4d4d; }
+
+  .event-delete {
+    position: absolute; top: 2px; right: 4px; background: none; border: none; padding: 0 3px;
+    font-size: 14px; line-height: 1; color: #888; cursor: pointer; border-radius: 3px;
+  }
+  .event-delete:hover { color: #fff; background: #d93025; }
+  body.cleaner-mode .event-delete { display: none; }
+  body.cleaner-mode .admin-only { display: none !important; }
+
+  .weekday-header { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 4px; }
+  .weekday-header div { text-align: center; font-weight: 600; padding: 6px 0; background: #eef0f3; border: 1px solid #ccc; }
+
+  /* Modals */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none;
+    align-items: flex-start; justify-content: center; z-index: 100; overflow-y: auto; padding: 20px 0;
+  }
+  .modal-backdrop.open { display: flex; }
+  #loginBackdrop { background: rgba(245,246,247,0.97); z-index: 200; align-items: center; }
+  .modal {
+    background: white; border-radius: 6px; padding: 20px 24px; width: 460px;
+    max-width: calc(100vw - 40px); box-shadow: 0 8px 30px rgba(0,0,0,0.25); margin: auto 0;
+  }
+  .modal h2 { margin: 0 0 4px; font-size: 18px; font-weight: 600; }
+  .modal .sub { color: #666; font-size: 13px; margin-bottom: 14px; }
+  .modal label.field { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: #333; }
+  .modal input[type=text], .modal input[type=password], .modal input[type=time], .modal select, .modal textarea {
+    width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #bbb;
+    border-radius: 4px; font-size: 14px; margin-bottom: 12px;
+  }
+  .modal textarea { resize: vertical; min-height: 60px; }
+  .modal input:focus, .modal select:focus, .modal textarea:focus { outline: 2px solid #4285f4; border-color: transparent; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+
+  .q { margin-bottom: 14px; }
+  .q .q-title { font-size: 13px; font-weight: 600; margin-bottom: 5px; color: #333; }
+  .q .opt { display: block; font-size: 14px; margin: 3px 0; cursor: pointer; }
+  .q .opt input { margin-right: 6px; }
+  .q .follow { margin-top: 6px; }
+  .q .follow textarea { margin-bottom: 0; min-height: 50px; }
+  .hidden { display: none !important; }
+  hr.sep { border: none; border-top: 1px solid #e3e5e8; margin: 14px 0; }
+
+  .thumbs { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 8px; }
+  .thumbs a img { width: 64px; height: 64px; object-fit: cover; border-radius: 4px; border: 1px solid #ccc; display: block; }
+  .pending { font-size: 13px; color: #444; }
+  .pending div { display: flex; align-items: center; gap: 6px; margin: 2px 0; }
+  .pending button { background: none; border: none; color: #888; cursor: pointer; font-size: 15px; }
+  .pending button:hover { color: #d93025; }
+  .form-error { background: #fce8e6; color: #a50e0e; border-radius: 4px; padding: 8px 10px; font-size: 13px; margin-top: 10px; display: none; }
+  .form-error.show { display: block; }
+  .form-notice { background: #e6f4ea; color: #137333; border-radius: 4px; padding: 8px 10px; font-size: 13px; margin-top: 10px; display: none; }
+  .form-notice.show { display: block; }
+
+  @media (max-width: 600px) {
+    body { padding: 10px; }
+    .toolbar h1 { min-width: 0; flex: 1; font-size: 20px; }
+    .modal-backdrop { padding: 0; }
+    .modal { width: 100%; max-width: 100%; border-radius: 0; min-height: 100vh; box-sizing: border-box; margin: 0; box-shadow: none; }
+    .modal input[type=text], .modal input[type=password], .modal input[type=time], .modal select, .modal textarea { font-size: 16px; padding: 12px; }
+    .q .opt { padding: 8px 0; font-size: 16px; }
+    .q .opt input { width: 20px; height: 20px; vertical-align: middle; }
+    .modal-actions { position: sticky; bottom: 0; background: white; padding: 10px 0; border-top: 1px solid #e3e5e8; margin-top: 12px; }
+    .modal-actions button { flex: 1; padding: 14px; font-size: 16px; }
+  }
+
+  body.job-mode { padding: 0; background: white; }
+  body.job-mode .toolbar, body.job-mode .filterbar, body.job-mode .legend,
+  body.job-mode .weekday-header, body.job-mode #calendar, body.job-mode #stepMark { display: none; }
+  body.job-mode #jobBackdrop.open { position: static; display: block; background: none; padding: 0; overflow: visible; }
+  body.job-mode #jobBackdrop .modal { width: 100%; max-width: 640px; margin: 0 auto; box-shadow: none; }
+</style>
+</head>
+
+<body>
+
+<!-- Filled in by Apps Script when the page is served from it; ignored when hosted elsewhere. -->
+<div id="initToken" data-t="__INITIAL_TOKEN__" data-j="__INITIAL_JOB__" hidden></div>
+
+<div class="toolbar">
+  <button class="nav-btn" id="prevBtn" title="Previous month">&#9664;</button>
+  <h1 id="monthTitle"></h1>
+  <button class="nav-btn" id="nextBtn" title="Next month">&#9654;</button>
+  <button class="btn-secondary" id="todayBtn">Today</button>
+  <span class="spacer"></span>
+  <button class="btn-primary" id="exportBtn">Export to iCal (.ics)</button>
+</div>
+
+<div class="filterbar">
+  <span id="personBox" class="hidden">
+    <label for="personFilter">Person:</label>
+    <select id="personFilter"></select>
+    <button class="btn-secondary btn-small admin-only" id="copyLinkBtn">Copy link for this person</button>
+  </span>
+  <span class="who" id="whoami"></span>
+  <button class="btn-secondary btn-small hidden" id="signOutBtn">Sign out</button>
+</div>
+
+<div id="banner" class="banner"></div>
+
+<div class="legend">
+  <span class="l-blue">Scheduled</span>
+  <span class="l-red">Overdue</span>
+  <span class="l-green">Done</span>
+  <span class="l-gray">Paid</span>
+</div>
+
+<div class="weekday-header">
+  <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+</div>
+<div class="calendar" id="calendar"></div>
+<div id="stepMark" style="margin-top:6px;font-size:11px;color:#c0392b;">Version: JCH20262809-001</div>
+
+<!-- Login -->
+<div class="modal-backdrop" id="loginBackdrop">
+  <form class="modal" id="loginForm">
+    <h2>Sign in</h2>
+    <div class="sub">Enter your access code, or open the link you were sent.</div>
+    <label class="field" for="loginCode">Access code</label>
+    <input type="password" id="loginCode" autocomplete="off" required>
+    <div class="form-error" id="loginError"></div>
+    <div class="modal-actions">
+      <button type="submit" class="btn-primary" id="loginBtn">Sign in</button>
+    </div>
+  </form>
+</div>
+
+<!-- Assignment form -->
+<div class="modal-backdrop" id="assignBackdrop">
+  <form class="modal" id="assignForm">
+    <h2>New assignment</h2>
+    <div class="sub" id="assignDate"></div>
+
+    <label class="field" for="asPerson">Person's name</label>
+    <select id="asPerson" required></select>
+
+    <label class="field" for="asTime">Time scheduled</label>
+    <input type="time" id="asTime" value="09:00" required>
+
+    <label class="field" for="asLocation">Location</label>
+    <select id="asLocation" required></select>
+    <input type="text" id="asLocationOther" class="hidden" placeholder="Enter the address">
+
+    <div class="q"><label class="opt"><input type="checkbox" id="asOneTime"> One-Night Stay</label></div>
+
+    <div class="form-error" id="assignError"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="assignCancel">Cancel</button>
+      <button type="submit" class="btn-primary" id="assignSave">Save assignment</button>
+    </div>
+  </form>
+</div>
+
+<!-- Job update form -->
+<div class="modal-backdrop" id="jobBackdrop">
+  <form class="modal" id="jobForm">
+    <h2 id="jobTitle">Job update</h2>
+    <div class="sub" id="jobSub"></div>
+
+    <label class="field" for="jobStatus">Status</label>
+    <select id="jobStatus"></select>
+
+    <hr class="sep">
+
+    <div class="q">
+      <label class="opt"><input type="checkbox" id="onceOver"> <b>I gave the property a once over</b></label>
+    </div>
+
+    <div class="q">
+      <div class="q-title">Do you believe the property was smoked in?</div>
+      <label class="opt"><input type="radio" name="smoked" value="Yes"> Yes</label>
+      <label class="opt"><input type="radio" name="smoked" value="No"> No</label>
+      <div class="follow" id="smokedFollow"><textarea id="smokedWhy" placeholder="Why do you think so?"></textarea></div>
+    </div>
+
+    <div class="q">
+      <div class="q-title">Was the property treated with Odorban?</div>
+      <label class="opt"><input type="radio" name="odorban" value="Yes, but it didn't resolve the smell"> Yes, but it didn't resolve the smell</label>
+      <label class="opt"><input type="radio" name="odorban" value="Yes, when I left it smelled clean"> Yes, when I left it smelled clean</label>
+      <label class="opt"><input type="radio" name="odorban" value="No"> No</label>
+      <div class="follow" id="odorbanFollow"><textarea id="odorbanWhy" placeholder="Why not?"></textarea></div>
+    </div>
+
+    <div class="q">
+      <div class="q-title">Are cleaning supplies needed?</div>
+      <label class="opt"><input type="radio" name="suppliesNeeded" value="Yes"> Yes</label>
+      <label class="opt"><input type="radio" name="suppliesNeeded" value="No"> No</label>
+      <div class="follow" id="suppliesFollow"><textarea id="suppliesText" placeholder="What is needed?"></textarea></div>
+    </div>
+
+    <div class="q">
+      <div class="q-title">Is anything broken?</div>
+      <label class="opt"><input type="radio" name="broken" value="Yes"> Yes</label>
+      <label class="opt"><input type="radio" name="broken" value="No"> No</label>
+      <div class="follow" id="brokenFollow"><textarea id="brokenText" placeholder="What is broken?"></textarea></div>
+    </div>
+
+    <label class="field" for="notes">Cleaner's notes</label>
+    <textarea id="notes"></textarea>
+
+    <div class="q-title" style="font-size:13px;font-weight:600;">Photos</div>
+    <div class="thumbs" id="thumbs"></div>
+    <input type="file" id="photoInput" accept="image/*" multiple>
+    <div class="pending" id="pending"></div>
+
+    <div class="q admin-only hidden" id="paidRow"><label class="opt"><input type="checkbox" id="paidBox"> <b>PAID</b></label></div>
+
+    <div class="form-notice" id="jobNotice"></div>
+    <div class="form-error" id="jobError"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" id="jobCancel">Close</button>
+      <button type="submit" class="btn-primary" id="jobSave">Save update</button>
+    </div>
+  </form>
+</div>
+
+<script>
+/* NOTE: use block comments only in this script. Never type two forward slashes in a row, in comments or inside strings such as web addresses. See the notes at the top of this file. */
+/* ---------- config ---------- */
+const API_URL = "https:" + "/" + "/" + "script.google.com/macros/s/AKfycbycWtXnPIPjYlsCdn4b1qLna-bvBOOPbanAiyTP2_NXm1bUatLGTwwQ3ud6qDGUDJSUaw/exec";
+const TOKEN_KEY = "jobCalToken";
+
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const ODOR_NO = "No";
+
+/* ---------- state ---------- */
+const IN_APPS_SCRIPT = typeof google !== "undefined" && !!(google.script && google.script.run);
+
+function initialToken() {
+  const el = document.getElementById("initToken");
+  const v = el ? (el.dataset.t || "") : "";
+  if (v && v !== "__INITIAL_TOKEN__") return v;
+  return new URLSearchParams(location.search).get("t") || "";
+}
+function initialJob() {
+  const el = document.getElementById("initToken");
+  const v = el ? (el.dataset.j || "") : "";
+  if (v && v !== "__INITIAL_JOB__") return v;
+  return new URLSearchParams(location.search).get("job") || "";
+}
+let JOB_ID = initialJob();
+let JOB_MODE = false;
+let jobHandled = false;
+let TOKEN = initialToken();
+if (!TOKEN) { try { TOKEN = localStorage.getItem(TOKEN_KEY) || ""; } catch (e) {} }
+
+let me = null;
+let CLEANER_MODE = false;
+let personFilter = "";
+let people = [];
+let events = [];
+const _now = new Date();
+let viewYear = _now.getFullYear(), viewMonth = _now.getMonth();
+let assignDateKey = null;
+let jobEv = null;
+let pendingFiles = [];
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, "0");
+const norm = s => String(s || "").trim().toLowerCase();
+const cleaners = () => people.filter(p => p.role === "cleaner");
+const dateKeyFromDate = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+
+function escapeHtml(str) {
+  return String(str == null ? "" : str).replace(/[&<>"']/g, c => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function escapeIcs(str) {
+  return String(str == null ? "" : str).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+}
+function fmtTime(ev) {
+  const d = new Date(ev.datetime);
+  return isNaN(d) ? "" : d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+function showBanner(msg, kind) {
+  const b = $("banner");
+  b.textContent = msg || "";
+  b.className = "banner" + (msg ? " " + (kind || "error") : "");
+}
+
+/* ---------- API + sign-in ---------- */
+function unwrap(data) {
+  if (!data.ok) {
+    const err = new Error(data.error || "Request failed");
+    if (data.code === "auth") err.auth = true;
+    throw err;
+  }
+  return data;
+}
+
+async function api(action, payload) {
+  const body = Object.assign({ action, token: TOKEN }, payload || {});
+
+  if (IN_APPS_SCRIPT) {
+    const text = await new Promise((resolve, reject) => {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(err => reject(new Error((err && err.message) || String(err))))
+        .handleRequest(JSON.stringify(body));
+    });
+    return unwrap(JSON.parse(text));
+  }
+
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(body)
+  });
+  return unwrap(await res.json());
+}
+
+function saveToken() { try { localStorage.setItem(TOKEN_KEY, TOKEN); } catch (e) {} }
+function clearToken() { TOKEN = ""; try { localStorage.removeItem(TOKEN_KEY); } catch (e) {} }
+
+function showLogin(message) {
+  me = null; events = []; people = [];
+  $("whoami").textContent = "";
+  $("signOutBtn").classList.add("hidden");
+  $("personBox").classList.add("hidden");
+  if (JOB_MODE) {
+    JOB_MODE = false; jobHandled = false;
+    document.body.classList.remove("job-mode");
+  }
+  $("loginError").textContent = message || "";
+  $("loginError").className = "form-error" + (message ? " show" : "");
+  $("loginCode").value = "";
+  $("loginBackdrop").classList.add("open");
+  $("loginCode").focus();
+  render();
+}
+
+$("loginForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  TOKEN = $("loginCode").value.trim();
+  const btn = $("loginBtn");
+  btn.disabled = true; btn.textContent = "Signing in…";
+  try { await loadEvents(); } finally { btn.disabled = false; btn.textContent = "Sign in"; }
+});
+
+$("signOutBtn").addEventListener("click", () => {
+  clearToken();
+  showLogin("");
+});
+
+function applyRole() {
+  CLEANER_MODE = me.role !== "admin";
+  document.body.classList.toggle("cleaner-mode", CLEANER_MODE);
+  $("personBox").classList.remove("hidden");
+  $("whoami").textContent = "Signed in as " + me.name;
+  $("signOutBtn").classList.remove("hidden");
+  if (CLEANER_MODE) personFilter = me.name;
+}
+
+async function loadEvents(silent) {
+  if (!TOKEN) { showLogin(""); return; }
+  if (!silent) showBanner("Loading events…", "info");
+  try {
+    const data = await api("list");
+    me = data.me;
+    events = data.events || [];
+    people = data.people || [];
+    saveToken();
+    $("loginBackdrop").classList.remove("open");
+    applyRole();
+    if (!silent) showBanner("");
+    refreshPersonFilter();
+    render();
+    if (JOB_ID && !jobHandled) { jobHandled = true; enterJobMode(JOB_ID); }
+  } catch (err) {
+    if (err.auth) {
+      const hadToken = !!TOKEN;
+      clearToken();
+      showBanner("");
+      showLogin(hadToken ? "That access code wasn't recognized." : "");
+    } else {
+      console.error(err);
+      if (silent) return;
+      const msg = "Couldn't load events: " + err.message;
+      if ($("loginBackdrop").classList.contains("open")) {
+        $("loginError").textContent = msg;
+        $("loginError").className = "form-error show";
+      } else {
+        showBanner(msg);
+      }
+    }
+  }
+}
+
+/* ---------- filtering ---------- */
+function visibleEvents() {
+  return events.filter(ev => ev.status !== "Cancelled" &&
+    (!personFilter || norm(ev.person) === norm(personFilter)));
+}
+
+function refreshPersonFilter() {
+  const sel = $("personFilter");
+  if (CLEANER_MODE) {
+    sel.innerHTML = `<option value="${escapeHtml(me.name)}">${escapeHtml(me.name)}</option>`;
+    sel.value = me.name;
+    sel.disabled = true;
+    personFilter = me.name;
+    return;
+  }
+  sel.disabled = false;
+  const keep = personFilter;
+  sel.innerHTML = '<option value="">All people</option>' +
+    cleaners().map(p => `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`).join("");
+  const match = cleaners().find(p => norm(p.name) === norm(keep));
+  sel.value = match ? match.name : "";
+  personFilter = sel.value;
+}
+
+$("personFilter").addEventListener("change", e => { personFilter = e.target.value; render(); });
+
+$("copyLinkBtn").addEventListener("click", async () => {
+  const p = people.find(x => norm(x.name) === norm(personFilter));
+  if (!p) { showBanner("Pick a person first, then copy their link.", "info"); return; }
+  const url = (IN_APPS_SCRIPT ? API_URL : location.origin + location.pathname) + "?t=" + encodeURIComponent(p.token);
+  try { await navigator.clipboard.writeText(url); showBanner("Link copied for " + p.name + ". Anyone with it can sign in as them.", "info"); }
+  catch (e) { window.prompt("Copy this link:", url); }
+});
+
+/* ---------- status ---------- */
+const ACCEPT_GRACE_HOURS = 3;
+
+function startOfDay(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+
+function overdueReason(ev, now) {
+  now = now || new Date();
+  if (ev.status === "Done" || ev.status === "Cancelled") return "";
+  const due = new Date(ev.datetime);
+  if (isNaN(due)) return "";
+
+  if (ev.status === "Assigned") {
+    return now >= startOfDay(due) ? "not accepted" : "";
+  }
+  if (ev.status === "Accepted") {
+    return now > new Date(due.getTime() + ACCEPT_GRACE_HOURS * 3600 * 1000) ? "not started" : "";
+  }
+  if (ev.status === "In Progress") {
+    let last = new Date(ev.updated);
+    if (isNaN(last)) last = due;
+    const deadline = startOfDay(last);
+    deadline.setDate(deadline.getDate() + 1);
+    return now >= deadline ? "no update" : "";
+  }
+  return "";
+}
+
+function statusClass(ev) {
+  if (ev.paid) return "st-gray";
+  if (ev.status === "Done") return "st-green";
+  return overdueReason(ev) ? "st-red" : "st-blue";
+}
+
+/* ---------- rendering ---------- */
+function render() {
+  $("monthTitle").textContent = MONTH_NAMES[viewMonth] + " " + viewYear;
+  const cal = $("calendar");
+  cal.innerHTML = "";
+
+  const firstWeekday = new Date(viewYear, viewMonth, 1).getDay();
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const todayKey = dateKeyFromDate(new Date());
+
+  for (let i = 0; i < firstWeekday; i++) {
+    const blank = document.createElement("div");
+    blank.className = "day empty";
+    cal.appendChild(blank);
+  }
+
+  const byDate = {};
+  visibleEvents().forEach(ev => {
+    const d = new Date(ev.datetime);
+    if (isNaN(d)) return;
+    (byDate[dateKeyFromDate(d)] = byDate[dateKeyFromDate(d)] || []).push({ ev, d });
+  });
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const key = viewYear + "-" + pad(viewMonth + 1) + "-" + pad(day);
+    const cell = document.createElement("div");
+    cell.className = "day" + (key === todayKey ? " today" : "");
+    cell.dataset.date = key;
+
+    const num = document.createElement("div");
+    num.className = "day-number";
+    num.textContent = day;
+    if (me && !CLEANER_MODE) {
+      num.title = "Add assignment";
+      num.addEventListener("click", () => openAssign(key));
+    }
+    cell.appendChild(num);
+
+    (byDate[key] || []).sort((a, b) => a.d - b.d).forEach(({ ev }) => cell.appendChild(buildEventEl(ev)));
+    cal.appendChild(cell);
+  }
+}
+
+function buildEventEl(ev) {
+  const cls = statusClass(ev);
+  const el = document.createElement("div");
+  el.className = "event " + cls;
+  const who = personFilter ? "" : " · " + escapeHtml(ev.person);
+  el.innerHTML = `
+    <button type="button" class="event-delete" title="Remove event" aria-label="Remove event">&times;</button>
+    <strong>${escapeHtml(ev.location)}</strong><br>
+    ${escapeHtml(fmtTime(ev))}${who}<br>
+    <span class="status-line">${escapeHtml(ev.status)}${overdueReason(ev) ? " - overdue (" + overdueReason(ev) + ")" : ""}${ev.oneTime ? " - one-night stay" : ""}${ev.paid ? " - paid" : ""}</span>
+  `;
+  el.querySelector(".event-delete").addEventListener("click", e => { e.stopPropagation(); removeEvent(ev); });
+  el.addEventListener("click", () => openJob(ev.id));
+  return el;
+}
+
+/* ---------- month navigation ---------- */
+function changeMonth(delta) {
+  viewMonth += delta;
+  if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+  if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+  render();
+}
+$("prevBtn").addEventListener("click", () => changeMonth(-1));
+$("nextBtn").addEventListener("click", () => changeMonth(1));
+$("todayBtn").addEventListener("click", () => {
+  const now = new Date();
+  viewYear = now.getFullYear(); viewMonth = now.getMonth();
+  render();
+});
+
+/* ---------- assignment form (admin) ---------- */
+const OTHER = "__other__";
+
+function knownLocations() {
+  const seen = new Map();
+  events.forEach(ev => {
+    const loc = String(ev.location || "").trim();
+    if (loc && !seen.has(norm(loc))) seen.set(norm(loc), loc);
+  });
+  return Array.from(seen.values()).sort((a, b) => a.localeCompare(b));
+}
+
+function syncLocationOther() {
+  const other = $("asLocation").value === OTHER;
+  $("asLocationOther").classList.toggle("hidden", !other);
+  $("asLocationOther").required = other;
+}
+$("asLocation").addEventListener("change", () => {
+  syncLocationOther();
+  if ($("asLocation").value === OTHER) $("asLocationOther").focus();
+});
+
+function openAssign(dateKey) {
+  assignDateKey = dateKey;
+  const [y, m, d] = dateKey.split("-").map(Number);
+  $("assignDate").textContent = MONTH_NAMES[m - 1] + " " + d + ", " + y;
+  $("assignForm").reset();
+  $("asTime").value = "09:00";
+
+  const list = cleaners();
+  const sel = $("asPerson");
+  sel.innerHTML = list.map(p => `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`).join("");
+  const match = list.find(p => norm(p.name) === norm(personFilter));
+  if (match) sel.value = match.name;
+
+  const locs = knownLocations();
+  $("asLocation").innerHTML =
+    (locs.length ? '<option value="" disabled selected>Choose a location…</option>' : "") +
+    locs.map(l => `<option value="${escapeHtml(l)}">${escapeHtml(l)}</option>`).join("") +
+    `<option value="${OTHER}">Other…</option>`;
+  if (!locs.length) $("asLocation").value = OTHER;
+  $("asLocationOther").value = "";
+  syncLocationOther();
+
+  const err = $("assignError");
+  if (!list.length) {
+    err.textContent = "Add a cleaner on the People tab of your sheet first.";
+    err.className = "form-error show";
+  } else {
+    err.className = "form-error";
+  }
+  $("assignBackdrop").classList.add("open");
+  ($("asLocation").value === OTHER ? $("asLocationOther") : $("asLocation")).focus();
+}
+function closeAssign() { $("assignBackdrop").classList.remove("open"); assignDateKey = null; }
+$("assignCancel").addEventListener("click", closeAssign);
+
+$("assignForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!assignDateKey) return;
+  const person = $("asPerson").value;
+  const location_ = ($("asLocation").value === OTHER ? $("asLocationOther").value : $("asLocation").value).trim();
+  const oneTime = $("asOneTime").checked;
+  const when = new Date(assignDateKey + "T" + ($("asTime").value || "09:00"));
+  if (!person || !location_ || isNaN(when)) return;
+
+  const btn = $("assignSave");
+  btn.disabled = true; btn.textContent = "Saving…";
+  try {
+    const res = await api("create", { person, location: location_, datetime: when.toISOString(), oneTime });
+    events.push(res.event);
+    closeAssign();
+    render();
+    loadEvents(true);
+  } catch (err) {
+    if (err.auth) { closeAssign(); showLogin("Your session expired. Sign in again."); return; }
+    $("assignError").textContent = err.message;
+    $("assignError").className = "form-error show";
+  } finally {
+    btn.disabled = false; btn.textContent = "Save assignment";
+  }
+});
+
+/* ---------- remove (cancel) ---------- */
+async function removeEvent(ev) {
+  if (!confirm("Remove this event? It will be marked Cancelled in the sheet.")) return;
+  try {
+    await api("cancel", { id: ev.id });
+    events = events.filter(e => e.id !== ev.id);
+    render();
+    loadEvents(true);
+  } catch (err) {
+    if (err.auth) { showLogin("Your session expired. Sign in again."); return; }
+    showBanner("Couldn't remove event: " + err.message);
+  }
+}
+
+/* ---------- job update form ---------- */
+const getRadio = name => (document.querySelector(`input[name="${name}"]:checked`) || {}).value || "";
+function setRadio(name, val) {
+  document.querySelectorAll(`input[name="${name}"]`).forEach(r => { r.checked = (r.value === val); });
+}
+
+function updateConditionals() {
+  $("smokedFollow").classList.toggle("hidden", getRadio("smoked") !== "Yes");
+  $("odorbanFollow").classList.toggle("hidden", getRadio("odorban") !== ODOR_NO);
+  $("suppliesFollow").classList.toggle("hidden", getRadio("suppliesNeeded") !== "Yes");
+  $("brokenFollow").classList.toggle("hidden", getRadio("broken") !== "Yes");
+}
+document.querySelectorAll("#jobForm input[type=radio]").forEach(r => r.addEventListener("change", updateConditionals));
+
+function driveThumb(url) {
+  const m = /\/d\/([^/?]+)/.exec(url) || /[?&]id=([^&]+)/.exec(url);
+  return m ? "https:" + "/" + "/" + "drive.google.com/thumbnail?id=" + m[1] + "&sz=w200" : "";
+}
+
+function renderThumbs() {
+  $("thumbs").innerHTML = (jobEv.images || []).map(u => {
+    const t = driveThumb(u);
+    return `<a href="${escapeHtml(u)}" target="_blank" rel="noopener"><img src="${escapeHtml(t)}" alt="Job photo"></a>`;
+  }).join("");
+  $("pending").innerHTML = pendingFiles.map((f, i) =>
+    `<div>${escapeHtml(f.name)} <button type="button" data-i="${i}" title="Remove">&times;</button></div>`).join("");
+  $("pending").querySelectorAll("button").forEach(b =>
+    b.addEventListener("click", () => { pendingFiles.splice(Number(b.dataset.i), 1); renderThumbs(); }));
+}
+
+$("photoInput").addEventListener("change", e => {
+  Array.from(e.target.files).forEach(f => pendingFiles.push(f));
+  e.target.value = "";
+  renderThumbs();
+});
+
+function openJob(id) {
+  const ev = events.find(x => x.id === id);
+  if (!ev) return;
+  jobEv = ev;
+  pendingFiles = [];
+
+  const d = new Date(ev.datetime);
+  $("jobTitle").textContent = ev.location;
+  $("jobSub").textContent = (isNaN(d) ? "" : d.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })) + " · " + ev.person + (ev.oneTime ? " · One-Night Stay" : "");
+
+  const options = ["Accepted", "In Progress", "Done"];
+  if (ev.status === "Assigned") options.unshift("Assigned");
+  $("jobStatus").innerHTML = options.map(s => `<option value="${s}">${s}</option>`).join("");
+  $("jobStatus").value = options.includes(ev.status) ? ev.status : options[0];
+
+  $("onceOver").checked = !!ev.onceOver;
+  setRadio("smoked", ev.smoked);
+  setRadio("odorban", ev.odorban);
+  setRadio("suppliesNeeded", ev.suppliesNeeded);
+  setRadio("broken", ev.broken);
+  $("smokedWhy").value = ev.smokedWhy || "";
+  $("odorbanWhy").value = ev.odorbanWhy || "";
+  $("suppliesText").value = ev.suppliesText || "";
+  $("brokenText").value = ev.brokenText || "";
+  $("notes").value = ev.notes || "";
+  $("paidRow").classList.toggle("hidden", CLEANER_MODE || ev.status !== "Done");
+  $("paidBox").checked = !!ev.paid;
+
+  updateConditionals();
+  renderThumbs();
+  $("jobError").className = "form-error";
+  $("jobNotice").className = "form-notice";
+  $("jobCancel").textContent = JOB_MODE ? "Open full calendar" : "Close";
+  $("jobBackdrop").classList.add("open");
+}
+function closeJob() { $("jobBackdrop").classList.remove("open"); jobEv = null; pendingFiles = []; }
+
+function showJobNotice(msg) {
+  $("jobNotice").textContent = msg;
+  $("jobNotice").className = "form-notice show";
+}
+
+function enterJobMode(id) {
+  const ev = events.find(x => x.id === id);
+  if (!ev) {
+    JOB_ID = "";
+    showBanner("That job is not available. It may have been cancelled or assigned to someone else.");
+    return;
+  }
+  JOB_MODE = true;
+  document.body.classList.add("job-mode");
+  openJob(id);
+}
+
+function exitJobMode() {
+  JOB_MODE = false; JOB_ID = "";
+  document.body.classList.remove("job-mode");
+  closeJob();
+  render();
+}
+
+$("jobCancel").addEventListener("click", () => { if (JOB_MODE) { exitJobMode(); } else { closeJob(); } });
+
+function collectJob() {
+  const smoked = getRadio("smoked"), odorban = getRadio("odorban");
+  const suppliesNeeded = getRadio("suppliesNeeded"), broken = getRadio("broken");
+  const out = {
+    status: $("jobStatus").value,
+    onceOver: $("onceOver").checked,
+    smoked, smokedWhy: smoked === "Yes" ? $("smokedWhy").value.trim() : "",
+    odorban, odorbanWhy: odorban === ODOR_NO ? $("odorbanWhy").value.trim() : "",
+    suppliesNeeded, suppliesText: suppliesNeeded === "Yes" ? $("suppliesText").value.trim() : "",
+    broken, brokenText: broken === "Yes" ? $("brokenText").value.trim() : "",
+    notes: $("notes").value.trim()
+  };
+  if (!CLEANER_MODE && jobEv && jobEv.status === "Done") out.paid = $("paidBox").checked;
+  return out;
+}
+
+function missingItems(o, imageCount) {
+  const m = [];
+  if (!o.onceOver) m.push("Confirm you gave the property a once over.");
+  if (!o.smoked) m.push("Answer the smoked-in question.");
+  else if (o.smoked === "Yes" && !o.smokedWhy) m.push("Explain why you think it was smoked in.");
+  if (!o.odorban) m.push("Answer the Odorban question.");
+  else if (o.odorban === ODOR_NO && !o.odorbanWhy) m.push("Explain why Odorban was not used.");
+  if (!o.suppliesNeeded) m.push("Answer the cleaning supplies question.");
+  else if (o.suppliesNeeded === "Yes" && !o.suppliesText) m.push("List the supplies needed.");
+  if (!o.broken) m.push("Answer the anything-broken question.");
+  else if (o.broken === "Yes" && !o.brokenText) m.push("Describe what is broken.");
+  if (imageCount === 0) m.push("Upload at least one photo.");
+  return m;
+}
+
+function showJobError(list) {
+  const el = $("jobError");
+  el.innerHTML = (Array.isArray(list) ? list : [list]).map(escapeHtml).join("<br>");
+  el.className = "form-error show";
+}
+
+function fileToJpegBase64(file, maxDim) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * scale);
+      c.height = Math.round(img.height * scale);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL("image/jpeg", 0.82).split(",")[1]);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Couldn't read " + file.name)); };
+    img.src = url;
+  });
+}
+
+$("jobForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!jobEv) return;
+  const f = collectJob();
+  const imageCount = (jobEv.images || []).length + pendingFiles.length;
+
+  let problems = [];
+  if (f.status === "Done") problems = missingItems(f, imageCount);
+  if (problems.length) { showJobError(problems); return; }
+  $("jobError").className = "form-error";
+
+  const btn = $("jobSave");
+  btn.disabled = true;
+  try {
+    const total = pendingFiles.length;
+    let n = 0;
+    while (pendingFiles.length) {
+      n++;
+      btn.textContent = "Uploading photo " + n + " of " + total + "…";
+      const file = pendingFiles[0];
+      const data = await fileToJpegBase64(file, 1600);
+      const base = file.name.replace(/\.[^.]+$/, "");
+      const res = await api("upload", {
+        id: jobEv.id, data,
+        filename: norm(jobEv.person).replace(/\s+/g, "-") + "_" + base + "_" + Date.now() + ".jpg"
+      });
+      jobEv.images = res.images;
+      pendingFiles.shift();
+      renderThumbs();
+    }
+    btn.textContent = "Saving…";
+    const res = await api("update", Object.assign({ id: jobEv.id }, f));
+    const idx = events.findIndex(x => x.id === res.event.id);
+    if (idx !== -1) events[idx] = res.event;
+    if (JOB_MODE) {
+      openJob(res.event.id);
+      showJobNotice("Saved.");
+    } else {
+      closeJob();
+      render();
+    }
+    loadEvents(true);
+  } catch (err) {
+    if (err.auth) { closeJob(); showLogin("Your session expired. Sign in again."); return; }
+    showJobError(err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Save update";
+  }
+});
+
+/* ---------- modal dismissal ---------- */
+["assignBackdrop", "jobBackdrop"].forEach(id => {
+  $(id).addEventListener("mousedown", e => {
+    if (JOB_MODE && id === "jobBackdrop") return;
+    if (e.target.id === id) { id === "assignBackdrop" ? closeAssign() : closeJob(); }
+  });
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !JOB_MODE) { closeAssign(); closeJob(); }
+});
+
+/* ---------- iCal export (current filter) ---------- */
+function personToken(name) {
+  if (CLEANER_MODE) return TOKEN;
+  const p = people.find(x => norm(x.name) === norm(name));
+  return p ? p.token : "";
+}
+
+function eventLink(ev, token) {
+  return API_URL + "?" + (token ? "t=" + encodeURIComponent(token) + "&" : "") + "job=" + encodeURIComponent(ev.id);
+}
+
+function foldIcs(line) {
+  const out = [];
+  while (line.length > 72) { out.push(line.slice(0, 72)); line = " " + line.slice(72); }
+  out.push(line);
+  return out.join("\r\n");
+}
+
+$("exportBtn").addEventListener("click", () => {
+  if (!personFilter) {
+    showBanner("Pick a person first. The export includes only the person you are viewing.", "info");
+    return;
+  }
+  const token = personToken(personFilter);
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-" + "/" + "/" + "Your Calendar" + "/" + "/" + "EN"];
+
+  visibleEvents().forEach(ev => {
+    const d = new Date(ev.datetime);
+    if (isNaN(d)) return;
+    const start = d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+    const link = eventLink(ev, token);
+    lines.push("BEGIN:VEVENT");
+    lines.push("UID:" + ev.id + "@job-calendar");
+    lines.push("DTSTAMP:" + stamp);
+    lines.push("SUMMARY:" + escapeIcs(ev.location));
+    lines.push("DTSTART:" + start);
+    lines.push("LOCATION:" + escapeIcs(ev.location));
+    lines.push("URL:" + link);
+    lines.push("DESCRIPTION:" + escapeIcs("Update this job: " + link));
+    lines.push("END:VEVENT");
+  });
+  lines.push("END:VCALENDAR");
+
+  const blob = new Blob([lines.map(foldIcs).join("\r\n")], { type: "text/calendar" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = personFilter.replace(/\s+/g, "-") + "-events.ics";
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+function anyModalOpen() {
+  return ["loginBackdrop", "assignBackdrop", "jobBackdrop"].some(id => $(id).classList.contains("open"));
+}
+function backgroundRefresh() {
+  if (me && !anyModalOpen() && document.visibilityState === "visible") loadEvents(true);
+}
+setInterval(backgroundRefresh, 60000);
+document.addEventListener("visibilitychange", backgroundRefresh);
+
+/* ---------- startup ---------- */
+document.addEventListener("DOMContentLoaded", () => {
+  render();
+  loadEvents();
+});
+</script>
+
+</body>
+</html>
