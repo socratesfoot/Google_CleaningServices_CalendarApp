@@ -54,3 +54,21 @@ On the `People` tab, add one row per person:
 * Green — Done.
 * Gray — Done and marked paid.
 
+# A note on editing Index.html
+The browsers used to test this app sit behind something that strips everything from two forward slashes in a row (//) to the end of that line — even inside a quoted web address — before the page's script can run. That turns a valid line into a syntax error and the whole page fails silently (blank calendar, no sign-in box).
+
+To work around it, Index.html contains no // line comments (block comments /* like this */ only) and no web address written with a literal // — each one is built by joining single slashes, e.g. "https:" + "/" + "/" + "host/path". This affects API_URL, the Drive thumbnail link in driveThumb(), and the iCal PRODID line.
+If you edit Index.html:
+* Never type // anywhere in the file — not in a comment, not in a string.
+* Before pasting a changed copy back into Apps Script, search the file for two slashes in a row. There should be no matches.
+Exception:
+Code.gs is not affected by this — it runs on Google's servers, not in a browser, so normal // comments and full URLs are fine there.
+
+# Troubleshooting
+Page loads but never signs in / blank calendar with no dates: almost always either the // issue above (if you edited Index.html), or the deployment's Execute as isn't set to Me (if it's "User accessing the web app," "Who has access: Anyone" won't be offered and sign-in will fail for everyone but you).
+"Unexpected token '<', is not valid JSON" on sign-in: the request is hitting a Google sign-in page instead of your script. Check Deploy > Manage deployments > Who has access is set to Anyone.
+A code change doesn't seem to take effect: you need to deploy a new version (Deploy > Manage deployments > pencil icon > Version: New version) after every edit — saving in the editor alone doesn't update the live /exec URL.
+
+* Checking the deployment is live: open /exec?json=1 in a browser. 
+* It should return {"ok":true,"status":"Job calendar API is running."}. 
+* This also creates the People and Assignments tabs if they don't exist yet.
