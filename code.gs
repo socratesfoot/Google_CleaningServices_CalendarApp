@@ -3,6 +3,11 @@
  * Needs the appsscript.json manifest that comes with it (narrow Drive scope + Drive API service).
  * After any change: Deploy > Manage deployments > Edit > New version.
  *
+ * LANGUAGE
+ * The People tab has a column with the header "Language" (any column position). Values:
+ * English, Spanish or Chinese (codes en, es, zh also work). Blank or unknown = English.
+ * The page translates itself to the language of the person who signs in.
+ *
  * NOTES FOR THIS ENVIRONMENT
  * Index.html reaches the browsers used with this project through something that damages any
  * text from two forward slashes in a row to the end of that line, even inside quoted web
@@ -106,7 +111,7 @@ function process_(req) {
 
   switch (req.action) {
     case 'list':
-      return Object.assign({ ok: true, me: { name: user.name, role: user.role } }, listFor_(user));
+      return Object.assign({ ok: true, me: { name: user.name, role: user.role, lang: user.lang } }, listFor_(user));
     case 'create':
       requireAdmin_(user);
       return { ok: true, event: createEvent_(req) };
@@ -143,6 +148,16 @@ function sameName_(a, b) {
   return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
 }
 
+/** Turns whatever is typed in the Language column into 'en', 'es' or 'zh'. Anything else is English. */
+function normLang_(v) {
+  const s = String(v || '').trim().toLowerCase();
+  if (!s) return 'en';
+  if (/^(es|spa|esp|latin)/.test(s)) return 'es';
+  if (/^(zh|cn|chi|man|can|mandarin|cantonese)/.test(s) || s.indexOf('中文') === 0 ||
+      s.indexOf('汉语') === 0 || s.indexOf('漢語') === 0 || s.indexOf('普通话') === 0) return 'zh';
+  return 'en';
+}
+
 function getSpreadsheet_() {
   return SPREADSHEET_ID ? SpreadsheetApp.openById(SPREADSHEET_ID)
                         : SpreadsheetApp.getActiveSpreadsheet();
@@ -153,13 +168,15 @@ function getPeopleSheet_() {
   let sh = ss.getSheetByName(PEOPLE_SHEET_NAME);
   if (!sh) {
     sh = ss.insertSheet(PEOPLE_SHEET_NAME);
-    sh.appendRow(['Name', 'Access code', 'Role', 'Active']);
+    sh.appendRow(['Name', 'Access code', 'Role', 'Active', 'Language']);
     sh.setFrozenRows(1);
-    sh.getRange(1, 1, 1, 4).setFontWeight('bold');
+    sh.getRange(1, 1, 1, 5).setFontWeight('bold');
     sh.getRange(2, 3, sh.getMaxRows() - 1, 1).setDataValidation(
       SpreadsheetApp.newDataValidation().requireValueInList(['admin', 'cleaner'], true).build());
     sh.getRange(2, 4, sh.getMaxRows() - 1, 1).insertCheckboxes();
-    sh.appendRow(['Admin', newToken_(), 'admin', true]);
+    sh.getRange(2, 5, sh.getMaxRows() - 1, 1).setDataValidation(
+      SpreadsheetApp.newDataValidation().requireValueInList(['English', 'Spanish', 'Chinese'], true).build());
+    sh.appendRow(['Admin', newToken_(), 'admin', true, 'English']);
     sh.setColumnWidth(2, 300);
   }
   return sh;
@@ -170,8 +187,14 @@ function readPeople_(fillBlanks) {
   const sh = getPeopleSheet_();
   const last = sh.getLastRow();
   if (last < 2) return [];
-  const range = sh.getRange(2, 1, last - 1, 4);
-  const values = range.getValues();
+  const lastCol = Math.max(sh.getLastColumn(), 4);
+
+  // Find the Language column by its header so it works wherever it was added.
+  const header = sh.getRange(1, 1, 1, lastCol).getValues()[0]
+    .map(h => String(h || '').trim().toLowerCase());
+  const langCol = header.indexOf('language');
+
+  const values = sh.getRange(2, 1, last - 1, lastCol).getValues();
   const people = [];
   values.forEach((r, i) => {
     const name = String(r[0] || '').trim();
@@ -185,7 +208,8 @@ function readPeople_(fillBlanks) {
       if (activeRaw === '') sh.getRange(i + 2, 4).setValue(true);
     }
     const active = !(activeRaw === false || String(activeRaw).toUpperCase() === 'FALSE');
-    people.push({ name: name, token: token, role: role === 'admin' ? 'admin' : 'cleaner', active: active });
+    const lang = langCol >= 0 ? normLang_(r[langCol]) : 'en';
+    people.push({ name: name, token: token, role: role === 'admin' ? 'admin' : 'cleaner', active: active, lang: lang });
   });
   return people;
 }
@@ -194,7 +218,7 @@ function authenticate_(token) {
   token = String(token || '').trim();
   if (!token) return null;
   const match = readPeople_(false).find(p => p.active && p.token && p.token === token);
-  return match ? { name: match.name, role: match.role } : null;
+  return match ? { name: match.name, role: match.role, lang: match.lang } : null;
 }
 
 function requireAdmin_(user) {
