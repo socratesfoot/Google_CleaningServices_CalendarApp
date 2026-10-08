@@ -32,11 +32,16 @@
      first occurrence of each placeholder in the hidden initToken div near the top of the body.
      The placeholder names are deliberately not written in this note, because a mention in a
      comment above that div would be replaced instead of the real one and the links would stop working.
+
+  5. Languages: the page text is translated in the I18N table in the script (English, Spanish,
+     Chinese). The language comes from the Language column on the People tab, through Code.gs.
+     English is the default. Values saved in the sheet (status names, Yes and No answers) are always
+     kept in English so the sheet and Code.gs keep working.
 -->
-<title>Job Calendar</title>
+<title>Cleaning Services Job Calendar</title>
 
 <style>
-  body { font-family: Segoe UI, Arial, sans-serif; background: #f5f6f7; padding: 20px; }
+  body { font-family: Segoe UI, Arial, "Microsoft YaHei", "PingFang SC", sans-serif; background: #f5f6f7; padding: 20px; }
   h1 { font-weight: 600; margin: 0; }
   button, input, select, textarea { font-family: inherit; }
 
@@ -177,49 +182,49 @@
 <div id="initToken" data-t="__INITIAL_TOKEN__" data-j="__INITIAL_JOB__" hidden></div>
 
 <div class="toolbar">
-  <button class="nav-btn" id="prevBtn" title="Previous month">&#9664;</button>
+  <button class="nav-btn" id="prevBtn" data-i18n-title="prevMonth" title="Previous month">&#9664;</button>
   <h1 id="monthTitle"></h1>
-  <button class="nav-btn" id="nextBtn" title="Next month">&#9654;</button>
-  <button class="btn-secondary" id="todayBtn">Today</button>
+  <button class="nav-btn" id="nextBtn" data-i18n-title="nextMonth" title="Next month">&#9654;</button>
+  <button class="btn-secondary" id="todayBtn" data-i18n="today">Today</button>
   <span class="spacer"></span>
-  <button class="btn-primary" id="exportBtn">Export to iCal (.ics)</button>
+  <button class="btn-primary" id="exportBtn" data-i18n="exportIcal">Export to iCal (.ics)</button>
 </div>
 
 <div class="filterbar">
   <span id="personBox" class="hidden">
-    <label for="personFilter">Person:</label>
+    <label for="personFilter" data-i18n="personLabel">Person:</label>
     <select id="personFilter"></select>
-    <button class="btn-secondary btn-small admin-only" id="copyLinkBtn">Copy link for this person</button>
+    <button class="btn-secondary btn-small admin-only" id="copyLinkBtn" data-i18n="copyLink">Copy link for this person</button>
   </span>
   <span class="who" id="whoami"></span>
-  <button class="btn-secondary btn-small hidden" id="signOutBtn">Sign out</button>
+  <button class="btn-secondary btn-small hidden" id="signOutBtn" data-i18n="signOut">Sign out</button>
 </div>
 
 <div id="banner" class="banner"></div>
 
 <div class="legend">
-  <span class="l-blue">Scheduled</span>
-  <span class="l-red">Overdue</span>
-  <span class="l-green">Done</span>
-  <span class="l-gray">Paid</span>
+  <span class="l-blue" data-i18n="legendScheduled">Scheduled</span>
+  <span class="l-red" data-i18n="legendOverdue">Overdue</span>
+  <span class="l-green" data-i18n="legendDone">Done</span>
+  <span class="l-gray" data-i18n="legendPaid">Paid</span>
 </div>
 
-<div class="weekday-header">
+<div class="weekday-header" id="weekdayHeader">
   <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
 </div>
 <div class="calendar" id="calendar"></div>
-<div id="stepMark" style="margin-top:6px;font-size:11px;color:#c0392b;">Version: JCH20262809-001</div>
+<div id="stepMark" style="margin-top:6px;font-size:11px;color:#c0392b;">Version: JCH20260810-001</div>
 
 <!-- Login -->
 <div class="modal-backdrop" id="loginBackdrop">
   <form class="modal" id="loginForm">
-    <h2>Sign in</h2>
-    <div class="sub">Enter your access code, or open the link you were sent.</div>
-    <label class="field" for="loginCode">Access code</label>
+    <h2 data-i18n="signInTitle">Sign in</h2>
+    <div class="sub" data-i18n="signInSub">Enter your access code, or open the link you were sent.</div>
+    <label class="field" for="loginCode" data-i18n="accessCode">Access code</label>
     <input type="password" id="loginCode" autocomplete="off" required>
     <div class="form-error" id="loginError"></div>
     <div class="modal-actions">
-      <button type="submit" class="btn-primary" id="loginBtn">Sign in</button>
+      <button type="submit" class="btn-primary" id="loginBtn" data-i18n="signInBtn">Sign in</button>
     </div>
   </form>
 </div>
@@ -227,25 +232,25 @@
 <!-- Assignment form -->
 <div class="modal-backdrop" id="assignBackdrop">
   <form class="modal" id="assignForm">
-    <h2>New assignment</h2>
+    <h2 data-i18n="newAssignment">New assignment</h2>
     <div class="sub" id="assignDate"></div>
 
-    <label class="field" for="asPerson">Person's name</label>
+    <label class="field" for="asPerson" data-i18n="personName">Person's name</label>
     <select id="asPerson" required></select>
 
-    <label class="field" for="asTime">Time scheduled</label>
+    <label class="field" for="asTime" data-i18n="timeScheduled">Time scheduled</label>
     <input type="time" id="asTime" value="09:00" required>
 
-    <label class="field" for="asLocation">Location</label>
+    <label class="field" for="asLocation" data-i18n="locationLabel">Location</label>
     <select id="asLocation" required></select>
-    <input type="text" id="asLocationOther" class="hidden" placeholder="Enter the address">
+    <input type="text" id="asLocationOther" class="hidden" data-i18n-ph="enterAddress" placeholder="Enter the address">
 
-    <div class="q"><label class="opt"><input type="checkbox" id="asOneTime"> One-Night Stay</label></div>
+    <div class="q"><label class="opt"><input type="checkbox" id="asOneTime"> <span data-i18n="oneNight">One-Night Stay</span></label></div>
 
     <div class="form-error" id="assignError"></div>
     <div class="modal-actions">
-      <button type="button" class="btn-secondary" id="assignCancel">Cancel</button>
-      <button type="submit" class="btn-primary" id="assignSave">Save assignment</button>
+      <button type="button" class="btn-secondary" id="assignCancel" data-i18n="cancel">Cancel</button>
+      <button type="submit" class="btn-primary" id="assignSave" data-i18n="saveAssignment">Save assignment</button>
     </div>
   </form>
 </div>
@@ -256,59 +261,59 @@
     <h2 id="jobTitle">Job update</h2>
     <div class="sub" id="jobSub"></div>
 
-    <label class="field" for="jobStatus">Status</label>
+    <label class="field" for="jobStatus" data-i18n="statusLabel">Status</label>
     <select id="jobStatus"></select>
 
     <hr class="sep">
 
     <div class="q">
-      <label class="opt"><input type="checkbox" id="onceOver"> <b>I gave the property a once over</b></label>
+      <label class="opt"><input type="checkbox" id="onceOver"> <b data-i18n="onceOver">I gave the property a once over</b></label>
     </div>
 
     <div class="q">
-      <div class="q-title">Do you believe the property was smoked in?</div>
-      <label class="opt"><input type="radio" name="smoked" value="Yes"> Yes</label>
-      <label class="opt"><input type="radio" name="smoked" value="No"> No</label>
-      <div class="follow" id="smokedFollow"><textarea id="smokedWhy" placeholder="Why do you think so?"></textarea></div>
+      <div class="q-title" data-i18n="smokedQ">Do you believe the property was smoked in?</div>
+      <label class="opt"><input type="radio" name="smoked" value="Yes"> <span data-i18n="yes">Yes</span></label>
+      <label class="opt"><input type="radio" name="smoked" value="No"> <span data-i18n="no">No</span></label>
+      <div class="follow" id="smokedFollow"><textarea id="smokedWhy" data-i18n-ph="smokedWhy" placeholder="Why do you think so?"></textarea></div>
     </div>
 
     <div class="q">
-      <div class="q-title">Was the property treated with Odorban?</div>
-      <label class="opt"><input type="radio" name="odorban" value="Yes, but it didn't resolve the smell"> Yes, but it didn't resolve the smell</label>
-      <label class="opt"><input type="radio" name="odorban" value="Yes, when I left it smelled clean"> Yes, when I left it smelled clean</label>
-      <label class="opt"><input type="radio" name="odorban" value="No"> No</label>
-      <div class="follow" id="odorbanFollow"><textarea id="odorbanWhy" placeholder="Why not?"></textarea></div>
+      <div class="q-title" data-i18n="odorbanQ">Was the property treated with Odorban?</div>
+      <label class="opt"><input type="radio" name="odorban" value="Yes, but it didn't resolve the smell"> <span data-i18n="odor1">Yes, but it didn't resolve the smell</span></label>
+      <label class="opt"><input type="radio" name="odorban" value="Yes, when I left it smelled clean"> <span data-i18n="odor2">Yes, when I left it smelled clean</span></label>
+      <label class="opt"><input type="radio" name="odorban" value="No"> <span data-i18n="no">No</span></label>
+      <div class="follow" id="odorbanFollow"><textarea id="odorbanWhy" data-i18n-ph="odorbanWhy" placeholder="Why not?"></textarea></div>
     </div>
 
     <div class="q">
-      <div class="q-title">Are cleaning supplies needed?</div>
-      <label class="opt"><input type="radio" name="suppliesNeeded" value="Yes"> Yes</label>
-      <label class="opt"><input type="radio" name="suppliesNeeded" value="No"> No</label>
-      <div class="follow" id="suppliesFollow"><textarea id="suppliesText" placeholder="What is needed?"></textarea></div>
+      <div class="q-title" data-i18n="suppliesQ">Are cleaning supplies needed?</div>
+      <label class="opt"><input type="radio" name="suppliesNeeded" value="Yes"> <span data-i18n="yes">Yes</span></label>
+      <label class="opt"><input type="radio" name="suppliesNeeded" value="No"> <span data-i18n="no">No</span></label>
+      <div class="follow" id="suppliesFollow"><textarea id="suppliesText" data-i18n-ph="suppliesWhat" placeholder="What is needed?"></textarea></div>
     </div>
 
     <div class="q">
-      <div class="q-title">Is anything broken?</div>
-      <label class="opt"><input type="radio" name="broken" value="Yes"> Yes</label>
-      <label class="opt"><input type="radio" name="broken" value="No"> No</label>
-      <div class="follow" id="brokenFollow"><textarea id="brokenText" placeholder="What is broken?"></textarea></div>
+      <div class="q-title" data-i18n="brokenQ">Is anything broken?</div>
+      <label class="opt"><input type="radio" name="broken" value="Yes"> <span data-i18n="yes">Yes</span></label>
+      <label class="opt"><input type="radio" name="broken" value="No"> <span data-i18n="no">No</span></label>
+      <div class="follow" id="brokenFollow"><textarea id="brokenText" data-i18n-ph="brokenWhat" placeholder="What is broken?"></textarea></div>
     </div>
 
-    <label class="field" for="notes">Cleaner's notes</label>
+    <label class="field" for="notes" data-i18n="notesLabel">Cleaner's notes</label>
     <textarea id="notes"></textarea>
 
-    <div class="q-title" style="font-size:13px;font-weight:600;">Photos</div>
+    <div class="q-title" style="font-size:13px;font-weight:600;" data-i18n="photos">Photos</div>
     <div class="thumbs" id="thumbs"></div>
     <input type="file" id="photoInput" accept="image/*" multiple>
     <div class="pending" id="pending"></div>
 
-    <div class="q admin-only hidden" id="paidRow"><label class="opt"><input type="checkbox" id="paidBox"> <b>PAID</b></label></div>
+    <div class="q admin-only hidden" id="paidRow"><label class="opt"><input type="checkbox" id="paidBox"> <b data-i18n="paidLabel">PAID</b></label></div>
 
     <div class="form-notice" id="jobNotice"></div>
     <div class="form-error" id="jobError"></div>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" id="jobCancel">Close</button>
-      <button type="submit" class="btn-primary" id="jobSave">Save update</button>
+      <button type="submit" class="btn-primary" id="jobSave" data-i18n="saveUpdate">Save update</button>
     </div>
   </form>
 </div>
@@ -318,9 +323,194 @@
 /* ---------- config ---------- */
 const API_URL = "https:" + "/" + "/" + "script.google.com/macros/s/AKfycbycWtXnPIPjYlsCdn4b1qLna-bvBOOPbanAiyTP2_NXm1bUatLGTwwQ3ud6qDGUDJSUaw/exec";
 const TOKEN_KEY = "jobCalToken";
+const LANG_KEY = "jobCalLang";
 
-const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const ODOR_NO = "No";
+
+/* ---------- translations ---------- */
+/* Add a language by adding a block here and a matching entry in LOCALES and HTML_LANG. */
+const I18N = {
+  en: {
+    title: "Cleaning Services Job Calendar",
+    months: ["January","February","March","April","May","June","July","August","September","October","November","December"],
+    weekdays: ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],
+    prevMonth: "Previous month", nextMonth: "Next month", today: "Today",
+    exportIcal: "Export to iCal (.ics)",
+    personLabel: "Person:", copyLink: "Copy link for this person", signOut: "Sign out",
+    allPeople: "All people", signedInAs: "Signed in as {name}",
+    legendScheduled: "Scheduled", legendOverdue: "Overdue", legendDone: "Done", legendPaid: "Paid",
+    signInTitle: "Sign in", signInSub: "Enter your access code, or open the link you were sent.",
+    accessCode: "Access code", signInBtn: "Sign in", signingIn: "Signing in…",
+    badCode: "That access code wasn't recognized.", expired: "Your session expired. Sign in again.",
+    newAssignment: "New assignment", personName: "Person's name", timeScheduled: "Time scheduled",
+    locationLabel: "Location", enterAddress: "Enter the address", oneNight: "One-Night Stay",
+    cancel: "Cancel", saveAssignment: "Save assignment", saving: "Saving…",
+    addAssignment: "Add assignment", addCleaner: "Add a cleaner on the People tab of your sheet first.",
+    chooseLocation: "Choose a location…", otherOpt: "Other…",
+    jobUpdate: "Job update", statusLabel: "Status",
+    st_Assigned: "Assigned", st_Accepted: "Accepted", st_In_Progress: "In Progress", st_Done: "Done",
+    onceOver: "I gave the property a once over",
+    smokedQ: "Do you believe the property was smoked in?", yes: "Yes", no: "No", smokedWhy: "Why do you think so?",
+    odorbanQ: "Was the property treated with Odorban?",
+    odor1: "Yes, but it didn't resolve the smell", odor2: "Yes, when I left it smelled clean", odorbanWhy: "Why not?",
+    suppliesQ: "Are cleaning supplies needed?", suppliesWhat: "What is needed?",
+    brokenQ: "Is anything broken?", brokenWhat: "What is broken?",
+    notesLabel: "Cleaner's notes", photos: "Photos", paidLabel: "PAID",
+    close: "Close", openFull: "Open full calendar", saveUpdate: "Save update", saved: "Saved.",
+    uploadingPhoto: "Uploading photo {n} of {total}…", photoAlt: "Job photo", remove: "Remove", removeEvent: "Remove event",
+    od_not_accepted: "not accepted", od_not_started: "not started", od_no_update: "no update",
+    overdueWord: "overdue", oneNightShort: "one-night stay", paidShort: "paid",
+    loading: "Loading events…", loadFail: "Couldn't load events: {msg}",
+    pickPersonLink: "Pick a person first, then copy their link.",
+    linkCopied: "Link copied for {name}. Anyone with it can sign in as them.", copyPrompt: "Copy this link:",
+    jobUnavailable: "That job is not available. It may have been cancelled or assigned to someone else.",
+    confirmRemove: "Remove this event? It will be marked Cancelled in the sheet.", removeFail: "Couldn't remove event: {msg}",
+    pickPersonExport: "Pick a person first. The export includes only the person you are viewing.",
+    updateJobLink: "Update this job: {link}", couldntRead: "Couldn't read {name}",
+    m_onceOver: "Confirm you gave the property a once over.",
+    m_smoked: "Answer the smoked-in question.", m_smokedWhy: "Explain why you think it was smoked in.",
+    m_odorban: "Answer the Odorban question.", m_odorbanWhy: "Explain why Odorban was not used.",
+    m_supplies: "Answer the cleaning supplies question.", m_suppliesText: "List the supplies needed.",
+    m_broken: "Answer the anything-broken question.", m_brokenText: "Describe what is broken.",
+    m_photo: "Upload at least one photo."
+  },
+  es: {
+    title: "Calendario de trabajos de limpieza",
+    months: ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"],
+    weekdays: ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"],
+    prevMonth: "Mes anterior", nextMonth: "Mes siguiente", today: "Hoy",
+    exportIcal: "Exportar a iCal (.ics)",
+    personLabel: "Persona:", copyLink: "Copiar enlace de esta persona", signOut: "Cerrar sesión",
+    allPeople: "Todas las personas", signedInAs: "Sesión iniciada como {name}",
+    legendScheduled: "Programado", legendOverdue: "Atrasado", legendDone: "Completado", legendPaid: "Pagado",
+    signInTitle: "Iniciar sesión", signInSub: "Ingrese su código de acceso o abra el enlace que le enviaron.",
+    accessCode: "Código de acceso", signInBtn: "Iniciar sesión", signingIn: "Iniciando sesión…",
+    badCode: "No se reconoció ese código de acceso.", expired: "Su sesión expiró. Inicie sesión de nuevo.",
+    newAssignment: "Nueva asignación", personName: "Nombre de la persona", timeScheduled: "Hora programada",
+    locationLabel: "Ubicación", enterAddress: "Ingrese la dirección", oneNight: "Estadía de una noche",
+    cancel: "Cancelar", saveAssignment: "Guardar asignación", saving: "Guardando…",
+    addAssignment: "Agregar asignación", addCleaner: "Primero agregue un limpiador en la pestaña People de su hoja.",
+    chooseLocation: "Elija una ubicación…", otherOpt: "Otra…",
+    jobUpdate: "Actualización del trabajo", statusLabel: "Estado",
+    st_Assigned: "Asignado", st_Accepted: "Aceptado", st_In_Progress: "En progreso", st_Done: "Completado",
+    onceOver: "Le di una revisión general a la propiedad",
+    smokedQ: "¿Cree que se fumó en la propiedad?", yes: "Sí", no: "No", smokedWhy: "¿Por qué lo cree?",
+    odorbanQ: "¿Se trató la propiedad con Odorban?",
+    odor1: "Sí, pero no eliminó el olor", odor2: "Sí, cuando me fui olía a limpio", odorbanWhy: "¿Por qué no?",
+    suppliesQ: "¿Se necesitan artículos de limpieza?", suppliesWhat: "¿Qué se necesita?",
+    brokenQ: "¿Hay algo roto?", brokenWhat: "¿Qué está roto?",
+    notesLabel: "Notas del limpiador", photos: "Fotos", paidLabel: "PAGADO",
+    close: "Cerrar", openFull: "Abrir calendario completo", saveUpdate: "Guardar actualización", saved: "Guardado.",
+    uploadingPhoto: "Subiendo foto {n} de {total}…", photoAlt: "Foto del trabajo", remove: "Quitar", removeEvent: "Eliminar evento",
+    od_not_accepted: "no aceptado", od_not_started: "no iniciado", od_no_update: "sin actualización",
+    overdueWord: "atrasado", oneNightShort: "estadía de una noche", paidShort: "pagado",
+    loading: "Cargando eventos…", loadFail: "No se pudieron cargar los eventos: {msg}",
+    pickPersonLink: "Elija primero una persona y luego copie su enlace.",
+    linkCopied: "Enlace copiado para {name}. Cualquiera que lo tenga puede iniciar sesión como esa persona.", copyPrompt: "Copie este enlace:",
+    jobUnavailable: "Ese trabajo no está disponible. Puede haber sido cancelado o asignado a otra persona.",
+    confirmRemove: "¿Eliminar este evento? Se marcará como Cancelado en la hoja.", removeFail: "No se pudo eliminar el evento: {msg}",
+    pickPersonExport: "Elija primero una persona. La exportación incluye solo a la persona que está viendo.",
+    updateJobLink: "Actualizar este trabajo: {link}", couldntRead: "No se pudo leer {name}",
+    m_onceOver: "Confirme que le dio una revisión general a la propiedad.",
+    m_smoked: "Responda la pregunta sobre si se fumó en la propiedad.", m_smokedWhy: "Explique por qué cree que se fumó.",
+    m_odorban: "Responda la pregunta sobre Odorban.", m_odorbanWhy: "Explique por qué no se usó Odorban.",
+    m_supplies: "Responda la pregunta sobre los artículos de limpieza.", m_suppliesText: "Indique los artículos que se necesitan.",
+    m_broken: "Responda la pregunta sobre si hay algo roto.", m_brokenText: "Describa qué está roto.",
+    m_photo: "Suba al menos una foto."
+  },
+  zh: {
+    title: "清洁服务工作日历",
+    months: ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"],
+    weekdays: ["周日","周一","周二","周三","周四","周五","周六"],
+    prevMonth: "上个月", nextMonth: "下个月", today: "今天",
+    exportIcal: "导出为 iCal (.ics)",
+    personLabel: "人员：", copyLink: "复制此人员的链接", signOut: "退出登录",
+    allPeople: "所有人员", signedInAs: "当前登录：{name}",
+    legendScheduled: "已安排", legendOverdue: "已逾期", legendDone: "已完成", legendPaid: "已付款",
+    signInTitle: "登录", signInSub: "请输入您的访问码，或打开发给您的链接。",
+    accessCode: "访问码", signInBtn: "登录", signingIn: "正在登录…",
+    badCode: "无法识别该访问码。", expired: "您的登录已过期，请重新登录。",
+    newAssignment: "新任务", personName: "人员姓名", timeScheduled: "安排时间",
+    locationLabel: "地点", enterAddress: "请输入地址", oneNight: "仅住一晚",
+    cancel: "取消", saveAssignment: "保存任务", saving: "正在保存…",
+    addAssignment: "添加任务", addCleaner: "请先在表格的 People 标签页中添加清洁人员。",
+    chooseLocation: "请选择地点…", otherOpt: "其他…",
+    jobUpdate: "工作更新", statusLabel: "状态",
+    st_Assigned: "已分配", st_Accepted: "已接受", st_In_Progress: "进行中", st_Done: "已完成",
+    onceOver: "我已对房屋进行了全面检查",
+    smokedQ: "您认为房屋内有人吸烟吗？", yes: "是", no: "否", smokedWhy: "您为什么这样认为？",
+    odorbanQ: "房屋是否使用了 Odorban 处理？",
+    odor1: "是，但没有消除异味", odor2: "是，我离开时闻起来很干净", odorbanWhy: "为什么没有？",
+    suppliesQ: "是否需要清洁用品？", suppliesWhat: "需要什么？",
+    brokenQ: "有东西损坏了吗？", brokenWhat: "什么东西损坏了？",
+    notesLabel: "清洁人员备注", photos: "照片", paidLabel: "已付款",
+    close: "关闭", openFull: "打开完整日历", saveUpdate: "保存更新", saved: "已保存。",
+    uploadingPhoto: "正在上传第 {n} 张照片，共 {total} 张…", photoAlt: "工作照片", remove: "移除", removeEvent: "删除事件",
+    od_not_accepted: "未接受", od_not_started: "未开始", od_no_update: "无更新",
+    overdueWord: "已逾期", oneNightShort: "仅住一晚", paidShort: "已付款",
+    loading: "正在加载事件…", loadFail: "无法加载事件：{msg}",
+    pickPersonLink: "请先选择一位人员，然后再复制其链接。",
+    linkCopied: "已复制 {name} 的链接。任何拿到该链接的人都可以以其身份登录。", copyPrompt: "请复制此链接：",
+    jobUnavailable: "该工作不可用。它可能已被取消或分配给了其他人。",
+    confirmRemove: "要删除此事件吗？它将在表格中被标记为已取消。", removeFail: "无法删除事件：{msg}",
+    pickPersonExport: "请先选择一位人员。导出内容仅包含您当前查看的人员。",
+    updateJobLink: "更新此工作：{link}", couldntRead: "无法读取 {name}",
+    m_onceOver: "请确认您已对房屋进行了全面检查。",
+    m_smoked: "请回答房屋是否有人吸烟的问题。", m_smokedWhy: "请说明您认为有人吸烟的原因。",
+    m_odorban: "请回答 Odorban 的问题。", m_odorbanWhy: "请说明为什么没有使用 Odorban。",
+    m_supplies: "请回答是否需要清洁用品的问题。", m_suppliesText: "请列出需要的用品。",
+    m_broken: "请回答是否有东西损坏的问题。", m_brokenText: "请描述什么东西损坏了。",
+    m_photo: "请至少上传一张照片。"
+  }
+};
+/* undefined means the browser's own locale, which is what the page used before translations existed. */
+const LOCALES = { en: undefined, es: "es", zh: "zh-CN" };
+const HTML_LANG = { en: "en", es: "es", zh: "zh-CN" };
+
+let LANG = "en";
+let staticApplied = false;
+try {
+  const savedLang = localStorage.getItem(LANG_KEY);
+  if (savedLang && I18N[savedLang]) LANG = savedLang;
+} catch (e) {}
+
+function t(key, vars) {
+  let s = (I18N[LANG] || I18N.en)[key];
+  if (s === undefined) s = I18N.en[key];
+  if (s === undefined) s = key;
+  if (vars) Object.keys(vars).forEach(k => { s = String(s).split("{" + k + "}").join(vars[k]); });
+  return s;
+}
+function tList(key) { return (I18N[LANG] || I18N.en)[key] || I18N.en[key]; }
+function monthName(i) { return tList("months")[i]; }
+function monthTitleText(y, m) { return LANG === "zh" ? y + "年" + (m + 1) + "月" : monthName(m) + " " + y; }
+function longDateText(y, m, d) {
+  if (LANG === "zh") return y + "年" + (m + 1) + "月" + d + "日";
+  if (LANG === "es") return d + " de " + monthName(m).toLowerCase() + " de " + y;
+  return monthName(m) + " " + d + ", " + y;
+}
+function statusLabel(s) { return t("st_" + String(s).replace(/ /g, "_")); }
+
+function applyStatic() {
+  document.title = t("title");
+  document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll("[data-i18n-ph]").forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+  document.querySelectorAll("[data-i18n-title]").forEach(el => { el.title = t(el.dataset.i18nTitle); });
+  const wd = tList("weekdays");
+  $("weekdayHeader").innerHTML = wd.map(w => "<div>" + escapeHtml(w) + "</div>").join("");
+  if (!jobEv) $("jobTitle").textContent = t("jobUpdate");
+  $("jobCancel").textContent = JOB_MODE ? t("openFull") : t("close");
+}
+
+/* Language comes from the People tab. Anything unknown falls back to English. */
+function applyLanguage(code) {
+  if (!I18N[code]) code = "en";
+  const changed = code !== LANG || !staticApplied;
+  LANG = code;
+  try { localStorage.setItem(LANG_KEY, LANG); } catch (e) {}
+  document.documentElement.lang = HTML_LANG[LANG];
+  if (changed) { applyStatic(); staticApplied = true; }
+}
 
 /* ---------- state ---------- */
 const IN_APPS_SCRIPT = typeof google !== "undefined" && !!(google.script && google.script.run);
@@ -370,12 +560,15 @@ function escapeIcs(str) {
 }
 function fmtTime(ev) {
   const d = new Date(ev.datetime);
-  return isNaN(d) ? "" : d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return isNaN(d) ? "" : d.toLocaleTimeString(LOCALES[LANG], { hour: "2-digit", minute: "2-digit" });
 }
 function showBanner(msg, kind) {
   const b = $("banner");
   b.textContent = msg || "";
   b.className = "banner" + (msg ? " " + (kind || "error") : "");
+}
+function setWhoami() {
+  $("whoami").textContent = me ? t("signedInAs", { name: me.name }) : "";
 }
 
 /* ---------- API + sign-in ---------- */
@@ -420,6 +613,7 @@ function showLogin(message) {
   if (JOB_MODE) {
     JOB_MODE = false; jobHandled = false;
     document.body.classList.remove("job-mode");
+    $("jobCancel").textContent = t("close");
   }
   $("loginError").textContent = message || "";
   $("loginError").className = "form-error" + (message ? " show" : "");
@@ -433,8 +627,8 @@ $("loginForm").addEventListener("submit", async e => {
   e.preventDefault();
   TOKEN = $("loginCode").value.trim();
   const btn = $("loginBtn");
-  btn.disabled = true; btn.textContent = "Signing in…";
-  try { await loadEvents(); } finally { btn.disabled = false; btn.textContent = "Sign in"; }
+  btn.disabled = true; btn.textContent = t("signingIn");
+  try { await loadEvents(); } finally { btn.disabled = false; btn.textContent = t("signInBtn"); }
 });
 
 $("signOutBtn").addEventListener("click", () => {
@@ -446,20 +640,21 @@ function applyRole() {
   CLEANER_MODE = me.role !== "admin";
   document.body.classList.toggle("cleaner-mode", CLEANER_MODE);
   $("personBox").classList.remove("hidden");
-  $("whoami").textContent = "Signed in as " + me.name;
+  setWhoami();
   $("signOutBtn").classList.remove("hidden");
   if (CLEANER_MODE) personFilter = me.name;
 }
 
 async function loadEvents(silent) {
   if (!TOKEN) { showLogin(""); return; }
-  if (!silent) showBanner("Loading events…", "info");
+  if (!silent) showBanner(t("loading"), "info");
   try {
     const data = await api("list");
     me = data.me;
     events = data.events || [];
     people = data.people || [];
     saveToken();
+    applyLanguage(me.lang || "en");
     $("loginBackdrop").classList.remove("open");
     applyRole();
     if (!silent) showBanner("");
@@ -471,11 +666,11 @@ async function loadEvents(silent) {
       const hadToken = !!TOKEN;
       clearToken();
       showBanner("");
-      showLogin(hadToken ? "That access code wasn't recognized." : "");
+      showLogin(hadToken ? t("badCode") : "");
     } else {
       console.error(err);
       if (silent) return;
-      const msg = "Couldn't load events: " + err.message;
+      const msg = t("loadFail", { msg: err.message });
       if ($("loginBackdrop").classList.contains("open")) {
         $("loginError").textContent = msg;
         $("loginError").className = "form-error show";
@@ -503,7 +698,7 @@ function refreshPersonFilter() {
   }
   sel.disabled = false;
   const keep = personFilter;
-  sel.innerHTML = '<option value="">All people</option>' +
+  sel.innerHTML = '<option value="">' + escapeHtml(t("allPeople")) + '</option>' +
     cleaners().map(p => `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`).join("");
   const match = cleaners().find(p => norm(p.name) === norm(keep));
   sel.value = match ? match.name : "";
@@ -514,10 +709,10 @@ $("personFilter").addEventListener("change", e => { personFilter = e.target.valu
 
 $("copyLinkBtn").addEventListener("click", async () => {
   const p = people.find(x => norm(x.name) === norm(personFilter));
-  if (!p) { showBanner("Pick a person first, then copy their link.", "info"); return; }
+  if (!p) { showBanner(t("pickPersonLink"), "info"); return; }
   const url = (IN_APPS_SCRIPT ? API_URL : location.origin + location.pathname) + "?t=" + encodeURIComponent(p.token);
-  try { await navigator.clipboard.writeText(url); showBanner("Link copied for " + p.name + ". Anyone with it can sign in as them.", "info"); }
-  catch (e) { window.prompt("Copy this link:", url); }
+  try { await navigator.clipboard.writeText(url); showBanner(t("linkCopied", { name: p.name }), "info"); }
+  catch (e) { window.prompt(t("copyPrompt"), url); }
 });
 
 /* ---------- status ---------- */
@@ -547,6 +742,8 @@ function overdueReason(ev, now) {
   return "";
 }
 
+function overdueText(reason) { return t("od_" + reason.replace(/ /g, "_")); }
+
 function statusClass(ev) {
   if (ev.paid) return "st-gray";
   if (ev.status === "Done") return "st-green";
@@ -555,7 +752,7 @@ function statusClass(ev) {
 
 /* ---------- rendering ---------- */
 function render() {
-  $("monthTitle").textContent = MONTH_NAMES[viewMonth] + " " + viewYear;
+  $("monthTitle").textContent = monthTitleText(viewYear, viewMonth);
   const cal = $("calendar");
   cal.innerHTML = "";
 
@@ -586,7 +783,7 @@ function render() {
     num.className = "day-number";
     num.textContent = day;
     if (me && !CLEANER_MODE) {
-      num.title = "Add assignment";
+      num.title = t("addAssignment");
       num.addEventListener("click", () => openAssign(key));
     }
     cell.appendChild(num);
@@ -601,11 +798,12 @@ function buildEventEl(ev) {
   const el = document.createElement("div");
   el.className = "event " + cls;
   const who = personFilter ? "" : " · " + escapeHtml(ev.person);
+  const reason = overdueReason(ev);
   el.innerHTML = `
-    <button type="button" class="event-delete" title="Remove event" aria-label="Remove event">&times;</button>
+    <button type="button" class="event-delete" title="${escapeHtml(t("removeEvent"))}" aria-label="${escapeHtml(t("removeEvent"))}">&times;</button>
     <strong>${escapeHtml(ev.location)}</strong><br>
     ${escapeHtml(fmtTime(ev))}${who}<br>
-    <span class="status-line">${escapeHtml(ev.status)}${overdueReason(ev) ? " - overdue (" + overdueReason(ev) + ")" : ""}${ev.oneTime ? " - one-night stay" : ""}${ev.paid ? " - paid" : ""}</span>
+    <span class="status-line">${escapeHtml(statusLabel(ev.status))}${reason ? " - " + escapeHtml(t("overdueWord")) + " (" + escapeHtml(overdueText(reason)) + ")" : ""}${ev.oneTime ? " - " + escapeHtml(t("oneNightShort")) : ""}${ev.paid ? " - " + escapeHtml(t("paidShort")) : ""}</span>
   `;
   el.querySelector(".event-delete").addEventListener("click", e => { e.stopPropagation(); removeEvent(ev); });
   el.addEventListener("click", () => openJob(ev.id));
@@ -652,7 +850,7 @@ $("asLocation").addEventListener("change", () => {
 function openAssign(dateKey) {
   assignDateKey = dateKey;
   const [y, m, d] = dateKey.split("-").map(Number);
-  $("assignDate").textContent = MONTH_NAMES[m - 1] + " " + d + ", " + y;
+  $("assignDate").textContent = longDateText(y, m - 1, d);
   $("assignForm").reset();
   $("asTime").value = "09:00";
 
@@ -664,16 +862,16 @@ function openAssign(dateKey) {
 
   const locs = knownLocations();
   $("asLocation").innerHTML =
-    (locs.length ? '<option value="" disabled selected>Choose a location…</option>' : "") +
+    (locs.length ? '<option value="" disabled selected>' + escapeHtml(t("chooseLocation")) + '</option>' : "") +
     locs.map(l => `<option value="${escapeHtml(l)}">${escapeHtml(l)}</option>`).join("") +
-    `<option value="${OTHER}">Other…</option>`;
+    `<option value="${OTHER}">${escapeHtml(t("otherOpt"))}</option>`;
   if (!locs.length) $("asLocation").value = OTHER;
   $("asLocationOther").value = "";
   syncLocationOther();
 
   const err = $("assignError");
   if (!list.length) {
-    err.textContent = "Add a cleaner on the People tab of your sheet first.";
+    err.textContent = t("addCleaner");
     err.className = "form-error show";
   } else {
     err.className = "form-error";
@@ -694,7 +892,7 @@ $("assignForm").addEventListener("submit", async e => {
   if (!person || !location_ || isNaN(when)) return;
 
   const btn = $("assignSave");
-  btn.disabled = true; btn.textContent = "Saving…";
+  btn.disabled = true; btn.textContent = t("saving");
   try {
     const res = await api("create", { person, location: location_, datetime: when.toISOString(), oneTime });
     events.push(res.event);
@@ -702,25 +900,25 @@ $("assignForm").addEventListener("submit", async e => {
     render();
     loadEvents(true);
   } catch (err) {
-    if (err.auth) { closeAssign(); showLogin("Your session expired. Sign in again."); return; }
+    if (err.auth) { closeAssign(); showLogin(t("expired")); return; }
     $("assignError").textContent = err.message;
     $("assignError").className = "form-error show";
   } finally {
-    btn.disabled = false; btn.textContent = "Save assignment";
+    btn.disabled = false; btn.textContent = t("saveAssignment");
   }
 });
 
 /* ---------- remove (cancel) ---------- */
 async function removeEvent(ev) {
-  if (!confirm("Remove this event? It will be marked Cancelled in the sheet.")) return;
+  if (!confirm(t("confirmRemove"))) return;
   try {
     await api("cancel", { id: ev.id });
     events = events.filter(e => e.id !== ev.id);
     render();
     loadEvents(true);
   } catch (err) {
-    if (err.auth) { showLogin("Your session expired. Sign in again."); return; }
-    showBanner("Couldn't remove event: " + err.message);
+    if (err.auth) { showLogin(t("expired")); return; }
+    showBanner(t("removeFail", { msg: err.message }));
   }
 }
 
@@ -745,11 +943,11 @@ function driveThumb(url) {
 
 function renderThumbs() {
   $("thumbs").innerHTML = (jobEv.images || []).map(u => {
-    const t = driveThumb(u);
-    return `<a href="${escapeHtml(u)}" target="_blank" rel="noopener"><img src="${escapeHtml(t)}" alt="Job photo"></a>`;
+    const th = driveThumb(u);
+    return `<a href="${escapeHtml(u)}" target="_blank" rel="noopener"><img src="${escapeHtml(th)}" alt="${escapeHtml(t("photoAlt"))}"></a>`;
   }).join("");
   $("pending").innerHTML = pendingFiles.map((f, i) =>
-    `<div>${escapeHtml(f.name)} <button type="button" data-i="${i}" title="Remove">&times;</button></div>`).join("");
+    `<div>${escapeHtml(f.name)} <button type="button" data-i="${i}" title="${escapeHtml(t("remove"))}">&times;</button></div>`).join("");
   $("pending").querySelectorAll("button").forEach(b =>
     b.addEventListener("click", () => { pendingFiles.splice(Number(b.dataset.i), 1); renderThumbs(); }));
 }
@@ -768,11 +966,11 @@ function openJob(id) {
 
   const d = new Date(ev.datetime);
   $("jobTitle").textContent = ev.location;
-  $("jobSub").textContent = (isNaN(d) ? "" : d.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })) + " · " + ev.person + (ev.oneTime ? " · One-Night Stay" : "");
+  $("jobSub").textContent = (isNaN(d) ? "" : d.toLocaleString(LOCALES[LANG], { dateStyle: "medium", timeStyle: "short" })) + " · " + ev.person + (ev.oneTime ? " · " + t("oneNight") : "");
 
   const options = ["Accepted", "In Progress", "Done"];
   if (ev.status === "Assigned") options.unshift("Assigned");
-  $("jobStatus").innerHTML = options.map(s => `<option value="${s}">${s}</option>`).join("");
+  $("jobStatus").innerHTML = options.map(s => `<option value="${s}">${escapeHtml(statusLabel(s))}</option>`).join("");
   $("jobStatus").value = options.includes(ev.status) ? ev.status : options[0];
 
   $("onceOver").checked = !!ev.onceOver;
@@ -792,7 +990,7 @@ function openJob(id) {
   renderThumbs();
   $("jobError").className = "form-error";
   $("jobNotice").className = "form-notice";
-  $("jobCancel").textContent = JOB_MODE ? "Open full calendar" : "Close";
+  $("jobCancel").textContent = JOB_MODE ? t("openFull") : t("close");
   $("jobBackdrop").classList.add("open");
 }
 function closeJob() { $("jobBackdrop").classList.remove("open"); jobEv = null; pendingFiles = []; }
@@ -806,7 +1004,7 @@ function enterJobMode(id) {
   const ev = events.find(x => x.id === id);
   if (!ev) {
     JOB_ID = "";
-    showBanner("That job is not available. It may have been cancelled or assigned to someone else.");
+    showBanner(t("jobUnavailable"));
     return;
   }
   JOB_MODE = true;
@@ -841,16 +1039,16 @@ function collectJob() {
 
 function missingItems(o, imageCount) {
   const m = [];
-  if (!o.onceOver) m.push("Confirm you gave the property a once over.");
-  if (!o.smoked) m.push("Answer the smoked-in question.");
-  else if (o.smoked === "Yes" && !o.smokedWhy) m.push("Explain why you think it was smoked in.");
-  if (!o.odorban) m.push("Answer the Odorban question.");
-  else if (o.odorban === ODOR_NO && !o.odorbanWhy) m.push("Explain why Odorban was not used.");
-  if (!o.suppliesNeeded) m.push("Answer the cleaning supplies question.");
-  else if (o.suppliesNeeded === "Yes" && !o.suppliesText) m.push("List the supplies needed.");
-  if (!o.broken) m.push("Answer the anything-broken question.");
-  else if (o.broken === "Yes" && !o.brokenText) m.push("Describe what is broken.");
-  if (imageCount === 0) m.push("Upload at least one photo.");
+  if (!o.onceOver) m.push(t("m_onceOver"));
+  if (!o.smoked) m.push(t("m_smoked"));
+  else if (o.smoked === "Yes" && !o.smokedWhy) m.push(t("m_smokedWhy"));
+  if (!o.odorban) m.push(t("m_odorban"));
+  else if (o.odorban === ODOR_NO && !o.odorbanWhy) m.push(t("m_odorbanWhy"));
+  if (!o.suppliesNeeded) m.push(t("m_supplies"));
+  else if (o.suppliesNeeded === "Yes" && !o.suppliesText) m.push(t("m_suppliesText"));
+  if (!o.broken) m.push(t("m_broken"));
+  else if (o.broken === "Yes" && !o.brokenText) m.push(t("m_brokenText"));
+  if (imageCount === 0) m.push(t("m_photo"));
   return m;
 }
 
@@ -873,7 +1071,7 @@ function fileToJpegBase64(file, maxDim) {
       URL.revokeObjectURL(url);
       resolve(c.toDataURL("image/jpeg", 0.82).split(",")[1]);
     };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Couldn't read " + file.name)); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error(t("couldntRead", { name: file.name }))); };
     img.src = url;
   });
 }
@@ -896,7 +1094,7 @@ $("jobForm").addEventListener("submit", async e => {
     let n = 0;
     while (pendingFiles.length) {
       n++;
-      btn.textContent = "Uploading photo " + n + " of " + total + "…";
+      btn.textContent = t("uploadingPhoto", { n: n, total: total });
       const file = pendingFiles[0];
       const data = await fileToJpegBase64(file, 1600);
       const base = file.name.replace(/\.[^.]+$/, "");
@@ -908,24 +1106,24 @@ $("jobForm").addEventListener("submit", async e => {
       pendingFiles.shift();
       renderThumbs();
     }
-    btn.textContent = "Saving…";
+    btn.textContent = t("saving");
     const res = await api("update", Object.assign({ id: jobEv.id }, f));
     const idx = events.findIndex(x => x.id === res.event.id);
     if (idx !== -1) events[idx] = res.event;
     if (JOB_MODE) {
       openJob(res.event.id);
-      showJobNotice("Saved.");
+      showJobNotice(t("saved"));
     } else {
       closeJob();
       render();
     }
     loadEvents(true);
   } catch (err) {
-    if (err.auth) { closeJob(); showLogin("Your session expired. Sign in again."); return; }
+    if (err.auth) { closeJob(); showLogin(t("expired")); return; }
     showJobError(err.message);
   } finally {
     btn.disabled = false;
-    btn.textContent = "Save update";
+    btn.textContent = t("saveUpdate");
   }
 });
 
@@ -960,7 +1158,7 @@ function foldIcs(line) {
 
 $("exportBtn").addEventListener("click", () => {
   if (!personFilter) {
-    showBanner("Pick a person first. The export includes only the person you are viewing.", "info");
+    showBanner(t("pickPersonExport"), "info");
     return;
   }
   const token = personToken(personFilter);
@@ -979,7 +1177,7 @@ $("exportBtn").addEventListener("click", () => {
     lines.push("DTSTART:" + start);
     lines.push("LOCATION:" + escapeIcs(ev.location));
     lines.push("URL:" + link);
-    lines.push("DESCRIPTION:" + escapeIcs("Update this job: " + link));
+    lines.push("DESCRIPTION:" + escapeIcs(t("updateJobLink", { link: link })));
     lines.push("END:VEVENT");
   });
   lines.push("END:VCALENDAR");
@@ -1004,6 +1202,7 @@ document.addEventListener("visibilitychange", backgroundRefresh);
 
 /* ---------- startup ---------- */
 document.addEventListener("DOMContentLoaded", () => {
+  applyLanguage(LANG);
   render();
   loadEvents();
 });
