@@ -8,6 +8,12 @@
  * English, Spanish or Chinese (codes en, es, zh also work). Blank or unknown = English.
  * The page translates itself to the language of the person who signs in.
  *
+ * SPECIAL INSTRUCTIONS
+ * The Assignments tab has two extra columns at the end: "Special instructions" (T) and
+ * "Instructions acknowledged" (U). An admin types the instructions when creating an assignment
+ * (or edits them later in the job form). The cleaner must tick "I acknowledge" before the job
+ * can be marked Done. Changing the instructions resets the acknowledgment.
+ *
  * NOTES FOR THIS ENVIRONMENT
  * Index.html reaches the browsers used with this project through something that damages any
  * text from two forward slashes in a row to the end of that line, even inside quoted web
@@ -50,7 +56,9 @@ const COLS = [
   ['images', 'Images'],
   ['updated', 'Last updated'],
   ['oneTime', 'One-Night Stay'],
-  ['paid', 'Paid']
+  ['paid', 'Paid'],
+  ['instructions', 'Special instructions'],
+  ['ack', 'Instructions acknowledged']
 ];
 const EDITABLE = ['status', 'onceOver', 'smoked', 'smokedWhy', 'odorban', 'odorbanWhy',
                   'suppliesNeeded', 'suppliesText', 'broken', 'brokenText', 'notes'];
@@ -269,9 +277,10 @@ function rowToObj_(row) {
   o.onceOver = (o.onceOver === true || String(o.onceOver).toUpperCase() === 'TRUE');
   o.oneTime = (o.oneTime === true || String(o.oneTime).toUpperCase() === 'TRUE');
   o.paid = (o.paid === true || String(o.paid).toUpperCase() === 'TRUE');
+  o.ack = (o.ack === true || String(o.ack).toUpperCase() === 'TRUE');
   o.images = o.images ? String(o.images).split('\n').filter(Boolean) : [];
   Object.keys(o).forEach(k => {
-    if (k !== 'onceOver' && k !== 'oneTime' && k !== 'paid' && k !== 'images') o[k] = String(o[k]);
+    if (k !== 'onceOver' && k !== 'oneTime' && k !== 'paid' && k !== 'ack' && k !== 'images') o[k] = String(o[k]);
   });
   return o;
 }
@@ -318,6 +327,7 @@ function listFor_(user) {
 
 function missing_(o) {
   const m = [];
+  if (String(o.instructions || '').trim() && !o.ack) m.push('acknowledge the special instructions');
   if (!o.onceOver) m.push('confirm you gave the property a once over');
   if (!o.smoked) m.push('answer the smoked-in question');
   else if (o.smoked === 'Yes' && !String(o.smokedWhy).trim()) m.push('explain why you think it was smoked in');
@@ -350,6 +360,8 @@ function createEvent_(req) {
   o.status = 'Assigned';
   o.oneTime = !!req.oneTime;
   o.paid = false;
+  o.instructions = String(req.instructions || '').trim();
+  o.ack = false;
   o.updated = new Date().toISOString();
 
   const sh = getSheet_();
@@ -368,6 +380,12 @@ function updateEvent_(req, user) {
   if (user.role !== 'admin' && !sameName_(o.person, user.name)) throw new Error('This job is assigned to someone else.');
 
   EDITABLE.forEach(k => { if (req[k] !== undefined) o[k] = req[k]; });
+  if (req.ack !== undefined) o.ack = !!req.ack;
+  if (req.instructions !== undefined) {
+    if (user.role !== 'admin') throw new Error('Only an admin can change the special instructions.');
+    const newText = String(req.instructions).trim();
+    if (newText !== String(o.instructions).trim()) { o.instructions = newText; o.ack = false; }
+  }
   if (req.paid !== undefined) {
     if (user.role !== 'admin') throw new Error('Only an admin can mark a job as paid.');
     o.paid = !!req.paid;

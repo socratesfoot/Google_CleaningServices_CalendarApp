@@ -37,6 +37,9 @@
      Chinese). The language comes from the Language column on the People tab, through Code.gs.
      English is the default. Values saved in the sheet (status names, Yes and No answers) are always
      kept in English so the sheet and Code.gs keep working.
+
+  6. Special instructions: an admin enters them in the new assignment form or in the job form.
+     The cleaner sees them under Status and must tick I acknowledge before a job can be set to Done.
 -->
 <title>Cleaning Services Job Calendar</title>
 
@@ -145,6 +148,13 @@
   .hidden { display: none !important; }
   hr.sep { border: none; border-top: 1px solid #e3e5e8; margin: 14px 0; }
 
+  .instr-box { background: #fff8e1; border: 1px solid #f0d98c; border-radius: 4px; padding: 10px 12px; margin-bottom: 14px; }
+  .instr-text { white-space: pre-wrap; font-size: 14px; margin-bottom: 8px; }
+  .instr-box textarea { margin-bottom: 8px; }
+  .instr-box .opt { display: block; font-size: 14px; cursor: pointer; }
+  .instr-box .opt input { margin-right: 6px; }
+  body:not(.cleaner-mode) .cleaner-only { display: none !important; }
+
   .thumbs { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 8px; }
   .thumbs a img { width: 64px; height: 64px; object-fit: cover; border-radius: 4px; border: 1px solid #ccc; display: block; }
   .pending { font-size: 13px; color: #444; }
@@ -162,8 +172,8 @@
     .modal-backdrop { padding: 0; }
     .modal { width: 100%; max-width: 100%; border-radius: 0; min-height: 100vh; box-sizing: border-box; margin: 0; box-shadow: none; }
     .modal input[type=text], .modal input[type=password], .modal input[type=time], .modal select, .modal textarea { font-size: 16px; padding: 12px; }
-    .q .opt { padding: 8px 0; font-size: 16px; }
-    .q .opt input { width: 20px; height: 20px; vertical-align: middle; }
+    .q .opt, .instr-box .opt { padding: 8px 0; font-size: 16px; }
+    .q .opt input, .instr-box .opt input { width: 20px; height: 20px; vertical-align: middle; }
     .modal-actions { position: sticky; bottom: 0; background: white; padding: 10px 0; border-top: 1px solid #e3e5e8; margin-top: 12px; }
     .modal-actions button { flex: 1; padding: 14px; font-size: 16px; }
   }
@@ -213,7 +223,7 @@
   <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
 </div>
 <div class="calendar" id="calendar"></div>
-<div id="stepMark" style="margin-top:6px;font-size:11px;color:#c0392b;">Version: JCH20260810-001</div>
+<div id="stepMark" style="margin-top:6px;font-size:11px;color:#c0392b;">Version: JCH20261012-001</div>
 
 <!-- Login -->
 <div class="modal-backdrop" id="loginBackdrop">
@@ -245,6 +255,9 @@
     <select id="asLocation" required></select>
     <input type="text" id="asLocationOther" class="hidden" data-i18n-ph="enterAddress" placeholder="Enter the address">
 
+    <label class="field" for="asInstr" data-i18n="instrLabel">Special instructions (optional)</label>
+    <textarea id="asInstr" data-i18n-ph="instrPlaceholder" placeholder="Anything the cleaner must know for this day and location"></textarea>
+
     <div class="q"><label class="opt"><input type="checkbox" id="asOneTime"> <span data-i18n="oneNight">One-Night Stay</span></label></div>
 
     <div class="form-error" id="assignError"></div>
@@ -263,6 +276,13 @@
 
     <label class="field" for="jobStatus" data-i18n="statusLabel">Status</label>
     <select id="jobStatus"></select>
+
+    <div class="instr-box" id="instrBox">
+      <div class="q-title" data-i18n="instrTitle">Special instructions</div>
+      <div class="instr-text cleaner-only" id="instrText"></div>
+      <textarea id="instrEdit" class="admin-only" data-i18n-ph="instrPlaceholder" placeholder="Anything the cleaner must know for this day and location"></textarea>
+      <label class="opt" id="instrAckRow"><input type="checkbox" id="instrAck"> <b data-i18n="instrAck">I acknowledge</b></label>
+    </div>
 
     <hr class="sep">
 
@@ -372,7 +392,10 @@ const I18N = {
     m_odorban: "Answer the Odorban question.", m_odorbanWhy: "Explain why Odorban was not used.",
     m_supplies: "Answer the cleaning supplies question.", m_suppliesText: "List the supplies needed.",
     m_broken: "Answer the anything-broken question.", m_brokenText: "Describe what is broken.",
-    m_photo: "Upload at least one photo."
+    m_photo: "Upload at least one photo.",
+    instrTitle: "Special instructions", instrLabel: "Special instructions (optional)",
+    instrPlaceholder: "Anything the cleaner must know for this day and location",
+    instrAck: "I acknowledge", m_ack: "Acknowledge the special instructions."
   },
   es: {
     title: "Calendario de trabajos de limpieza",
@@ -416,7 +439,10 @@ const I18N = {
     m_odorban: "Responda la pregunta sobre Odorban.", m_odorbanWhy: "Explique por qué no se usó Odorban.",
     m_supplies: "Responda la pregunta sobre los artículos de limpieza.", m_suppliesText: "Indique los artículos que se necesitan.",
     m_broken: "Responda la pregunta sobre si hay algo roto.", m_brokenText: "Describa qué está roto.",
-    m_photo: "Suba al menos una foto."
+    m_photo: "Suba al menos una foto.",
+    instrTitle: "Instrucciones especiales", instrLabel: "Instrucciones especiales (opcional)",
+    instrPlaceholder: "Todo lo que el limpiador debe saber para este día y ubicación",
+    instrAck: "Lo confirmo", m_ack: "Confirme que leyó las instrucciones especiales."
   },
   zh: {
     title: "清洁服务工作日历",
@@ -460,7 +486,10 @@ const I18N = {
     m_odorban: "请回答 Odorban 的问题。", m_odorbanWhy: "请说明为什么没有使用 Odorban。",
     m_supplies: "请回答是否需要清洁用品的问题。", m_suppliesText: "请列出需要的用品。",
     m_broken: "请回答是否有东西损坏的问题。", m_brokenText: "请描述什么东西损坏了。",
-    m_photo: "请至少上传一张照片。"
+    m_photo: "请至少上传一张照片。",
+    instrTitle: "特别说明", instrLabel: "特别说明（可选）",
+    instrPlaceholder: "清洁人员在此日期和地点需要了解的事项",
+    instrAck: "我已知悉", m_ack: "请确认已阅读特别说明。"
   }
 };
 /* undefined means the browser's own locale, which is what the page used before translations existed. */
@@ -894,7 +923,7 @@ $("assignForm").addEventListener("submit", async e => {
   const btn = $("assignSave");
   btn.disabled = true; btn.textContent = t("saving");
   try {
-    const res = await api("create", { person, location: location_, datetime: when.toISOString(), oneTime });
+    const res = await api("create", { person, location: location_, datetime: when.toISOString(), oneTime, instructions: $("asInstr").value.trim() });
     events.push(res.event);
     closeAssign();
     render();
@@ -986,6 +1015,13 @@ function openJob(id) {
   $("paidRow").classList.toggle("hidden", CLEANER_MODE || ev.status !== "Done");
   $("paidBox").checked = !!ev.paid;
 
+  const hasInstr = !!String(ev.instructions || "").trim();
+  $("instrText").textContent = ev.instructions || "";
+  $("instrEdit").value = ev.instructions || "";
+  $("instrAck").checked = !!ev.ack;
+  $("instrAckRow").classList.toggle("hidden", !hasInstr);
+  $("instrBox").classList.toggle("hidden", CLEANER_MODE && !hasInstr);
+
   updateConditionals();
   renderThumbs();
   $("jobError").className = "form-error";
@@ -1034,11 +1070,14 @@ function collectJob() {
     notes: $("notes").value.trim()
   };
   if (!CLEANER_MODE && jobEv && jobEv.status === "Done") out.paid = $("paidBox").checked;
+  out.ack = $("instrAck").checked;
+  if (!CLEANER_MODE) out.instructions = $("instrEdit").value.trim();
   return out;
 }
 
-function missingItems(o, imageCount) {
+function missingItems(o, imageCount, needsAck) {
   const m = [];
+  if (needsAck && !o.ack) m.push(t("m_ack"));
   if (!o.onceOver) m.push(t("m_onceOver"));
   if (!o.smoked) m.push(t("m_smoked"));
   else if (o.smoked === "Yes" && !o.smokedWhy) m.push(t("m_smokedWhy"));
@@ -1083,7 +1122,10 @@ $("jobForm").addEventListener("submit", async e => {
   const imageCount = (jobEv.images || []).length + pendingFiles.length;
 
   let problems = [];
-  if (f.status === "Done") problems = missingItems(f, imageCount);
+  if (f.status === "Done") {
+    const instrNow = CLEANER_MODE ? jobEv.instructions : f.instructions;
+    problems = missingItems(f, imageCount, !!String(instrNow || "").trim());
+  }
   if (problems.length) { showJobError(problems); return; }
   $("jobError").className = "form-error";
 
