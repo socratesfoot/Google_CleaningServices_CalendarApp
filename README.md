@@ -1,5 +1,5 @@
 # Google_CleaningServices_CalendarApp
-A cleaning-job scheduler and tracker built on Google Sheets and Apps Script. An admin schedules jobs on a calendar; cleaners sign in with a personal access code, see only their own jobs, and update status and a completion checklist (with required photos) as they work. Includes per-person iCal export, a one-tap mobile link to a single job, and a PAID flag for finished jobs.
+A cleaning-job scheduler and tracker built on Google Sheets and Apps Script. An admin schedules jobs on a calendar; cleaners sign in with a personal access code, see only their own jobs, and update status and a completion checklist (with required photos) as they work. Includes per-person iCal export, a one-tap mobile link to a single job, and a PAID flag for finished jobs. Admins can also attach special instructions to a job, which the cleaner must acknowledge before the job can be marked Done (see Special instructions and cleaner notes).
 # Contents
 * `Code.gs` — the Apps Script backend: sign-in, the Assignments and People sheets, photo uploads to Drive, validation rules.
 * `Index.html` — the calendar page served to the browser.
@@ -34,18 +34,31 @@ On the `People` tab, add one row per person:
 * To send a cleaner their sign-in link, sign in as admin, pick their name in the Person dropdown, and click Copy link for this person. The link signs them in automatically — no code to type.
 
 # Usage as Admin
-* Scheduling a job: click any date on the calendar. Pick the cleaner, a time, and a location (choose an existing address or "Other…" to add a new one). Check One-Night Stay if it applies.
+* Scheduling a job: click any date on the calendar. Pick the cleaner, a time, and a location (choose an existing address or "Other…" to add a new one). Check One-Night Stay if it applies. Add Special instructions if there's anything the cleaner must know for that day and location (optional).
+* Editing special instructions: open the job — admins get an editable Special instructions box in the job form. Saving changed instructions resets the cleaner's acknowledgment, so they have to confirm the new text before the job can be marked Done.
 * Viewing by person: use the Person dropdown to filter the calendar, or leave it on "All people."
 * Removing a job: click the × on an event chip. This marks it Cancelled in the sheet rather than deleting the row; cancelled jobs never show on the calendar.
 * Marking a job paid: open a job whose status is Done — a PAID checkbox appears (cleaners never see this). Paid jobs turn gray on the calendar. Reopening a paid job to Accepted or In Progress automatically clears the paid flag.
 * Exporting a calendar: pick a person in the dropdown, then click "Export to iCal (.ics)." The file contains only that person's jobs, and each event links back to that person's single-job view (see below).
 
+# Special instructions and cleaner notes
+The Assignments tab carries two different note fields, and they run in opposite directions:
+
+* Special instructions (column T) — written by an admin to the cleaner. Entered when the assignment is created, or edited later in the job form. The cleaner sees them in the job view and must tick "I acknowledge" (column U, "Instructions acknowledged") before the job can be marked Done. Changing the instructions resets the acknowledgment.
+* Cleaner notes (column O, "Cleaner notes") — written by the cleaner back to the admin. A free-text box in the cleaner's job form, alongside the completion checklist (once-over, smoked-in, supplies, broken items). It's the cleaner's report on the job; there is no acknowledgment on notes.
+
+How the "I acknowledge" checkbox behaves:
+* It only shows on a job that already has special instructions saved. On a job with no instructions, there is nothing to acknowledge and the checkbox stays hidden.
+* Admins see the editable instructions box instead of the read-only text the cleaner sees. Reopening a job that has instructions shows the checkbox too, which is how an admin can see whether the cleaner has ticked it yet.
+* `Code.gs` sets up the two extra columns at the end of the Assignments tab, and keeps the acknowledgment in sync when the job form changes the instructions.
+
 # As a Cleaner
 * Sign in with your access code, or open the link your admin sent you.
 * You only see your own jobs. The Person field is locked to your name.
 * Opening a job shows the status, a completion checklist, your notes, and a place to upload photos.
+* If a job has special instructions, they appear at the top of the job view. Read them and tick "I acknowledge" — a job with instructions can't be marked Done until you do. If the instructions change, you have to acknowledge the new text.
 * Status progression: Assigned → Accepted → In Progress → Done. Accepted and In Progress can be saved with no photos and no checklist answers.
-* Done requires the checklist to be fully answered and at least one photo uploaded.
+* Done requires the checklist to be fully answered, at least one photo uploaded, and any special instructions acknowledged.
 * From a calendar link: tapping an event in your phone's calendar app opens just that one job, laid out for a phone, with a button back to the full calendar.
 
 # Status colors
