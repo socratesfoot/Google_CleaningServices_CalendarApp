@@ -123,7 +123,7 @@
   .modal h2 { margin: 0 0 4px; font-size: 18px; font-weight: 600; }
   .modal .sub { color: #666; font-size: 13px; margin-bottom: 14px; }
   .modal label.field { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: #333; }
-  .modal input[type=text], .modal input[type=password], .modal input[type=time], .modal select, .modal textarea {
+  .modal input[type=text], .modal input[type=password], .modal input[type=time], .modal input[type=number], .modal select, .modal textarea {
     width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #bbb;
     border-radius: 4px; font-size: 14px; margin-bottom: 12px;
   }
@@ -136,6 +136,9 @@
   .q .opt { display: block; font-size: 14px; margin: 3px 0; cursor: pointer; }
   .q .opt input { margin-right: 6px; }
   .q .follow { margin-top: 6px; }
+  .q .supply-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+  .q .supply-row label { flex: 1; font-size: 14px; }
+  .q .supply-row input[type=number] { width: 70px; margin-bottom: 0; text-align: center; }
   .q .follow textarea { margin-bottom: 0; min-height: 50px; }
   .hidden { display: none !important; }
   hr.sep { border: none; border-top: 1px solid #e3e5e8; margin: 14px 0; }
@@ -156,7 +159,7 @@
     .toolbar h1 { min-width: 0; flex: 1; font-size: 20px; }
     .modal-backdrop { padding: 0; }
     .modal { width: 100%; max-width: 100%; border-radius: 0; min-height: 100vh; box-sizing: border-box; margin: 0; box-shadow: none; }
-    .modal input[type=text], .modal input[type=password], .modal input[type=time], .modal select, .modal textarea { font-size: 16px; padding: 12px; }
+    .modal input[type=text], .modal input[type=password], .modal input[type=time], .modal input[type=number], .modal select, .modal textarea { font-size: 16px; padding: 12px; }
     .q .opt { padding: 8px 0; font-size: 16px; }
     .q .opt input { width: 20px; height: 20px; vertical-align: middle; }
     .modal-actions { position: sticky; bottom: 0; background: white; padding: 10px 0; border-top: 1px solid #e3e5e8; margin-top: 12px; }
@@ -284,7 +287,15 @@
       <div class="q-title">Are cleaning supplies needed?</div>
       <label class="opt"><input type="radio" name="suppliesNeeded" value="Yes"> Yes</label>
       <label class="opt"><input type="radio" name="suppliesNeeded" value="No"> No</label>
-      <div class="follow" id="suppliesFollow"><textarea id="suppliesText" placeholder="What is needed?"></textarea></div>
+    </div>
+
+    <div class="q">
+      <div class="q-title">Supplies taken from the cleaning closet</div>
+      <div class="supply-row"><label for="supWhiteBags">White trash bags</label><input type="number" id="supWhiteBags" min="0" value="0"></div>
+      <div class="supply-row"><label for="supBlackBags">Black trash bags</label><input type="number" id="supBlackBags" min="0" value="0"></div>
+      <div class="supply-row"><label for="supPaperTowels">Paper towels</label><input type="number" id="supPaperTowels" min="0" value="0"></div>
+      <div class="supply-row"><label for="supToiletPaper">Toilet paper</label><input type="number" id="supToiletPaper" min="0" value="0"></div>
+      <div class="follow" id="suppliesFollow"><textarea id="suppliesText" placeholder="Other: items needed, updates, or items to be replaced..."></textarea></div>
     </div>
 
     <div class="q">
@@ -785,6 +796,10 @@ function openJob(id) {
   $("suppliesText").value = ev.suppliesText || "";
   $("brokenText").value = ev.brokenText || "";
   $("notes").value = ev.notes || "";
+  $("supWhiteBags").value = ev.suppliesWhiteBags || "0";
+  $("supBlackBags").value = ev.suppliesBlackBags || "0";
+  $("supPaperTowels").value = ev.suppliesPaperTowels || "0";
+  $("supToiletPaper").value = ev.suppliesToiletPaper || "0";
   $("paidRow").classList.toggle("hidden", CLEANER_MODE || ev.status !== "Done");
   $("paidBox").checked = !!ev.paid;
 
@@ -833,7 +848,11 @@ function collectJob() {
     odorban, odorbanWhy: odorban === ODOR_NO ? $("odorbanWhy").value.trim() : "",
     suppliesNeeded, suppliesText: suppliesNeeded === "Yes" ? $("suppliesText").value.trim() : "",
     broken, brokenText: broken === "Yes" ? $("brokenText").value.trim() : "",
-    notes: $("notes").value.trim()
+    notes: $("notes").value.trim(),
+    suppliesWhiteBags: $("supWhiteBags").value || "0",
+    suppliesBlackBags: $("supBlackBags").value || "0",
+    suppliesPaperTowels: $("supPaperTowels").value || "0",
+    suppliesToiletPaper: $("supToiletPaper").value || "0"
   };
   if (!CLEANER_MODE && jobEv && jobEv.status === "Done") out.paid = $("paidBox").checked;
   return out;

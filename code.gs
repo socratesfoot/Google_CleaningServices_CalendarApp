@@ -45,10 +45,15 @@ const COLS = [
   ['images', 'Images'],
   ['updated', 'Last updated'],
   ['oneTime', 'One-Night Stay'],
-  ['paid', 'Paid']
+  ['paid', 'Paid'],
+  ['suppliesWhiteBags', 'Supplies taken - White trash bags'],
+  ['suppliesBlackBags', 'Supplies taken - Black trash bags'],
+  ['suppliesPaperTowels', 'Supplies taken - Paper towels'],
+  ['suppliesToiletPaper', 'Supplies taken - Toilet paper']
 ];
 const EDITABLE = ['status', 'onceOver', 'smoked', 'smokedWhy', 'odorban', 'odorbanWhy',
-                  'suppliesNeeded', 'suppliesText', 'broken', 'brokenText', 'notes'];
+                  'suppliesNeeded', 'suppliesText', 'broken', 'brokenText', 'notes',
+                  'suppliesWhiteBags', 'suppliesBlackBags', 'suppliesPaperTowels', 'suppliesToiletPaper'];
 
 /* ---------------- Entry points ---------------- */
 
